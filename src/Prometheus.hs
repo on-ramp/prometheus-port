@@ -47,7 +47,6 @@ import           Protolude
 
 import           Network.HTTP.Client.Conduit
 import           Network.HTTP.Simple
-import           Network.HTTP.Types.Status
 
 import           Data.Default
 import           Data.Time.Clock
@@ -129,35 +128,18 @@ time toIO f action = do
 
 -- | Pushes metrics to a server.
 --
---   Every push is attempted only once,
---   any connection failure or non-2XX status codes drop messages to stdout
+--   Will definitely return 'InvalidUrlException' if the provided address is inaccessible
+--   or a matching 'SomeException' if the push fails.
 push
   :: IO LByteString
   -> [Char] -- ^ Server to push to
-  -> IO ()
-push exportfunc mayAddress = do
+  -> IO (Either SomeException (Response ByteString))
+push exportfunc mayAddress =
   case parseRequest mayAddress of
-    Nothing      -> putText $ show mayAddress <> " could not be parsed"
-    Just address -> do
+    Left ex       -> return $ Left ex
+    Right address -> do
       exported <- exportfunc
-      sent <- try $ httpBS
-                      . setRequestMethod "POST"
-                      . setRequestBodyLBS exported
-                      $ address
-
-      let Left (err :: SomeException) = sent
-          Right response = sent
-          status = statusCode $ getResponseStatus response
-
-      if | isLeft sent -> putText $ mconcat [ "Could not send metrics to address "
-                                            , show address
-                                            , " due to "
-                                            , show err
-                                            ]
-
-         | status < 200 || status >= 300 -> putText $ mconcat [ "Is the metrics server at address "
-                                                              , show address
-                                                              , " fine? It's returning status "
-                                                              , show status
-                                                              ]
-         | otherwise -> return ()
+      try $ httpBS
+              . setRequestMethod "POST"
+              . setRequestBodyLBS exported
+              $ address
