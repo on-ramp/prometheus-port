@@ -9,8 +9,8 @@ referential transparency (it's still probably a better choice for smaller-sized 
 
 ## Library usage
 
-The interface defined in this package is an exact copy of that defined in [prometheus-client]
-(https://hackage.haskell.org/package/prometheus), except:
+The interface defined in this package is an exact copy of that defined in
+[prometheus-client](https://hackage.haskell.org/package/prometheus), except:
 
 - Collection operations are all defined in typeclasses
     (e.g. Counters and Gauges use `increment` instead of their respective `incCounter` and `incGauge`);
