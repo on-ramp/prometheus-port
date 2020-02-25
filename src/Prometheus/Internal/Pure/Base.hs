@@ -112,15 +112,19 @@ instance PureIncrementable s => PureIncrementable (Pure Identity s) where
   pureIncrement = Pure . pureIncrement . unPure
   (+.+)     a d = Pure . (+.+ d)       $ unPure a
 
-class PureIncrementable a => PureShiftable a where
+class PureDecrementable a where
   pureDecrement :: a           -> a
   (-.-)         :: a -> Double -> a
-  (=.=)         ::      Double -> a
 
-instance PureShiftable s => PureShiftable (Pure Identity s) where
+instance PureDecrementable s => PureDecrementable (Pure Identity s) where
   pureDecrement = Pure . pureDecrement . unPure
   (-.-)     a d = Pure . (-.- d)       $ unPure a
-  (=.=)         = Pure . (=.=)
+
+class PureSettable a where
+  (=.=)         :: a -> Double -> a
+
+instance PureSettable s => PureSettable (Pure Identity s) where
+  (=.=)     a d = Pure . (=.= d)       $ unPure a
 
 class PureObservable a where
   pureObserve   :: a -> Double -> a

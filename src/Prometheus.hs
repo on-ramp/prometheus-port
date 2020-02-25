@@ -19,7 +19,8 @@ module Prometheus
   , genericExport
     -- ** Collecting data
   , Incrementable (..)
-  , Shiftable (..)
+  , Decrementable (..)
+  , Settable (..)
   , Observable (..)
     -- * Vector
   , vector
@@ -57,7 +58,8 @@ import           Data.Time.Clock
 --
 --   Member of typeclass 'Incrementable'.
 --
---   Note: do __not__ use '.+.' with negative values when using counters,
+--   Note: '.=.' only updates the counter if the new value is larger than
+--   the previous one. Do __not__ use '.+.' with negative values when using counters,
 --   [it makes kittens cry](https://prometheus.io/docs/instrumenting/writing_clientlibs/#counter)
 counter :: Info -> Metric Counter
 counter = construct . (, ())

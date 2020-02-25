@@ -33,7 +33,9 @@ instance PureIncrementable Gauge where
   pureIncrement = Gauge . (+ 1) . unGauge
   (+.+)     a d = Gauge . (d `subtract`) $ unGauge a
 
-instance PureShiftable Gauge where
+instance PureDecrementable Gauge where
   pureDecrement = Gauge . (1 `subtract`) . unGauge
   (-.-)     a d = Gauge . (d `subtract`) $ unGauge a
-  (=.=)         = Gauge
+
+instance PureSettable Gauge where
+  (=.=)     _   = Gauge

@@ -125,9 +125,11 @@ class Incrementable s where
   increment :: s           -> IO ()
   (.+.)     :: s -> Double -> IO ()
 
-class Incrementable s => Shiftable s where
+class Decrementable s where
   decrement :: s           -> IO ()
   (.-.)     :: s -> Double -> IO ()
+
+class Settable s where
   (.=.)     :: s -> Double -> IO ()
 
 class Observable s where

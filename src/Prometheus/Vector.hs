@@ -80,18 +80,24 @@ instance ( Vector' l s ~ Impure (l, o) f i
 
 instance ( Vector' l s ~ Impure (l, o) f i
          , PureConstructible o b
-         , PureShiftable b
+         , PureDecrementable b
          , PureMappable l (Pure f i) b
          )
-         => Shiftable (l, Vector l s) where
+         => Decrementable (l, Vector l s) where
   decrement (l, Vector (Impure (_, (_, o)) s))   =
     atomically . modifyTVar' s . pmap l (pureConstruct o) $ pureDecrement
 
   (.-.)     (l, Vector (Impure (_, (_, o)) s)) d =
     atomically . modifyTVar' s . pmap l (pureConstruct o) $ (-.- d)
 
+instance ( Vector' l s ~ Impure (l, o) f i
+         , PureConstructible o b
+         , PureSettable b
+         , PureMappable l (Pure f i) b
+         )
+         => Settable (l, Vector l s) where
   (.=.)     (l, Vector (Impure (_, (_, o)) s)) d =
-    atomically . modifyTVar' s . pmap l (pureConstruct o) . const $ (=.=) d
+    atomically . modifyTVar' s . pmap l (pureConstruct o) $ (=.= d)
 
 instance ( Vector' l s ~ Impure (l, o) f i
          , PureConstructible o b

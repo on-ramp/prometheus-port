@@ -16,7 +16,8 @@ module Prometheus.Internal.Pure
   , addTags
     -- ** Collection
   , PureIncrementable (..)
-  , PureShiftable (..)
+  , PureDecrementable (..)
+  , PureSettable (..)
   , PureObservable (..)
     -- * Vector precursors
   , Tags

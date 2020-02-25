@@ -54,10 +54,12 @@ instance PureIncrementable (Pure f i) => Incrementable (Impure o f i) where
   increment (Impure _ s)   = atomically $ modifyTVar' s pureIncrement
   (.+.)     (Impure _ s) d = atomically $ modifyTVar' s (+.+ d)
 
-instance PureShiftable (Pure f i) => Shiftable (Impure o f i) where
+instance PureDecrementable (Pure f i) => Decrementable (Impure o f i) where
   decrement (Impure _ s)   = atomically . modifyTVar' s $ pureDecrement
   (.-.)     (Impure _ s) d = atomically . modifyTVar' s $ (-.- d)
-  (.=.)     (Impure _ s) d = atomically . writeTVar   s $ (=.=) d
+
+instance PureSettable (Pure f i) => Settable (Impure o f i) where
+  (.=.)     (Impure _ s) d = atomically . modifyTVar' s $ (=.= d)
 
 instance PureObservable (Pure f i) => Observable (Impure o f i) where
   observe (Impure _ s) d = atomically . modifyTVar' s $ flip pureObserve d

@@ -14,6 +14,9 @@ import           Data.Default
 newtype Counter = Counter { unCounter :: Double }
                   deriving Default
 
+pureUnsafeSet :: Pure Identity Counter -> Double -> Pure Identity Counter
+pureUnsafeSet _ = Pure . Counter
+
 
 
 instance PureNamed Counter where
@@ -33,3 +36,9 @@ instance PureExportable Counter where
 instance PureIncrementable Counter where
   pureIncrement = Counter . (+ 1) . unCounter
   (+.+)     a d = Counter . (+ d) $ unCounter a
+
+instance PureSettable Counter where
+  (=.=) (Counter a) d = 
+    if d > a
+      then Counter d
+      else Counter a
