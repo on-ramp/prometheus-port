@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_HADDOCK hide #-}
 
 {-|
@@ -31,21 +32,21 @@ instance {-# OVERLAPS #-} Default [Quantile] where
 
 
 data Item = Item
-              { iValue :: Double
-              , iG     :: !Int64
-              , iD     :: !Int64
+              { _iValue :: Double
+              , _iG     :: !Int64
+              , _iD     :: !Int64
               } deriving Eq
 
 instance Ord Item where
-  compare = compare `on` iValue
+  compare = compare `on` _iValue
 
 
 -- | 'Estimator' is the underlying structure of a summary, aggregating values over time.
 data Estimator = Estimator
-                   { eCount     :: !Int64
-                   , eSum       :: !Double
-                   , eQuantiles :: [Quantile]
-                   , eItems     :: [Item]
+                   { _eCount     :: !Int64
+                   , _eSum       :: !Double
+                   , _eQuantiles :: [Quantile]
+                   , _eItems     :: [Item]
                    }
 
 -- | A summary exposes streaming φ-quantiles (0 ≤ φ ≤ 1) of observed events over a sliding time
@@ -97,21 +98,21 @@ insert value summaryData@(Estimator oldCount oldSum quantiles items) =
         insertItem r [x]
             -- The first two cases cover the scenario where the initial size of
             -- the list is one.
-            | r == 0 && value < iValue x = Item value 1 0 : [x]
-            | r == 0                     = x : [Item value 1 0]
+            | r == 0 && value < _iValue x = Item value 1 0 : [x]
+            | r == 0                      = x : [Item value 1 0]
             -- The last case covers the scenario where the we have walked off
             -- the end of a list with more than 1 element in the final case of
             -- insertItem in which case we already know that x < value.
-            | otherwise                     = x : [Item value 1 0]
+            | otherwise                   = x : [Item value 1 0]
         insertItem r (x:y:xs)
             -- This first case only covers the scenario where value is less than
             -- the first item in a multi-item list. For subsequent steps of
             -- a multi valued list, this case cannot happen as it would have
             -- fallen through to the case below in the previous step.
-            | value <= iValue x = Item value 1 0 : x : y : xs
-            | value <= iValue y = x : Item value 1 (calcD $ r + iG x)
-                                    : y : xs
-            | otherwise            = x : insertItem (iG x + r) (y : xs)
+            | value <= _iValue x = Item value 1 0 : x : y : xs
+            | value <= _iValue y = x : Item value 1 (calcD $ r + _iG x)
+                                     : y : xs
+            | otherwise          = x : insertItem (_iG x + r) (y : xs)
 
         calcD r = max 0
                 $ floor (invariant summaryData (fromIntegral r)) - 1
@@ -123,11 +124,11 @@ compress est@(Estimator _ _ _ items)    =
     Nothing      -> est
     Just minItem ->
       est
-        { eItems = (minItem :)
-                     . foldr' compressPair []
-                     . drop 1  -- The exact minimum item must be kept exactly.
-                     . zip items
-                     $ scanl (+) 0 (map iG items)
+        { _eItems = (minItem :)
+                      . foldr' compressPair []
+                      . drop 1  -- The exact minimum item must be kept exactly.
+                      . zip items
+                      $ scanl (+) 0 (map _iG items)
         }
     where
         compressPair (a, _) [] = [a]
@@ -141,7 +142,7 @@ compress est@(Estimator _ _ _ items)    =
 query :: Estimator -> Double -> Double
 query est@(Estimator count _ _ items) q = findQuantile allRs items
     where
-        allRs = scanl (+) 0 $ map iG items
+        allRs = scanl (+) 0 $ map _iG items
 
         n = fromIntegral count
         f = invariant est
@@ -150,9 +151,9 @@ query est@(Estimator count _ _ items) q = findQuantile allRs items
         bound = rank + (f rank / 2)
 
         findQuantile _        []   = 0 / 0  -- NaN
-        findQuantile _        [a]  = iValue a
+        findQuantile _        [a]  = _iValue a
         findQuantile (_:bR:rs) (a@(Item{}):b@(Item _ bG bD):xs)
-            | fromIntegral (bR + bG + bD) > bound = iValue a
+            | fromIntegral (bR + bG + bD) > bound = _iValue a
             | otherwise            = findQuantile (bR:rs) (b:xs)
         findQuantile _        _    = 0 / 0 -- This is supposed to fail with an error,
                                            -- but we don't do that here

@@ -10,7 +10,6 @@ import           Protolude
 
 import           Control.Concurrent.STM.TVar
 import qualified Data.ByteString.Lazy as BL
-import           Data.Time.Clock
 
 
 
