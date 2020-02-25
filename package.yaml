@@ -28,6 +28,7 @@ library:
 
   exposed-modules:
     - Prometheus
+    - Prometheus.GHC
 
   dependencies:
     - base
