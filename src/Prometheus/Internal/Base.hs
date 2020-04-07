@@ -12,12 +12,15 @@ import           Control.Concurrent.STM.TVar
 import qualified Data.ByteString.Lazy as BL
 
 
-
 -- | Basic description of metrics
 data Info = Info
               { iName :: LByteString -- ^ Name of the metric
               , iHelp :: LByteString -- ^ Additional commentary
+              , iAdditionalTags :: [(LByteString, LByteString)]
               } deriving Show
+
+infoM :: LByteString -> LByteString -> Info
+infoM name help = Info name help []
 
 -- | A wrapper that duplicates all of additional information stored by 'Impure' into a separate
 --   argument. It's full duplication only because Vectors need to convert '_mUninitialized'
@@ -53,7 +56,7 @@ class Registrable s where
 class Extractable e s where
   extract :: s -> IO e
 
--- | Packing metrics into 'Template's. 
+-- | Packing metrics into 'Template's.
 --
 --   Note: I tried to put 'genericExport' as a default Signature, but then it started
 --         declining the 'Generic' instance with "No Exportable" class error :/
@@ -141,10 +144,10 @@ data Template = Template Info LByteString [Sample]
                 deriving Show
 
 -- | Class of objects that can be transformed into Prometheus metrics.
---   
+--
 --   This doesn't really have to be a class ¯\_(ツ)_/¯
 template :: Template -> LByteString
-template (Template (Info name help) metric samples) =
+template (Template (Info name help additionalTags) metric samples) =
     mconcat $ [ "# HELP ", name, " ", help  , "\n"
               , "# TYPE ", name, " ", metric, "\n"
               ] <> fmap fromSamples samples
@@ -153,7 +156,7 @@ template (Template (Info name help) metric samples) =
         mconcat [ name, suffix, fromLabels labels, " ", show value, "\n"]
 
       fromSamples (IntSample    suffix labels value) =
-        mconcat [ name, suffix, fromLabels labels, " ", show value, "\n"]
+        mconcat [ name, suffix, fromLabels (labels ++ additionalTags), " ", show value, "\n"]
 
       fromLabels []     = ""
       fromLabels labels = let expand (k, a) = mconcat [ k, "=\"", a, "\"" ]

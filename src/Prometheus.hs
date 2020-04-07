@@ -30,6 +30,7 @@ module Prometheus
   , push
     -- * Additional types
   , Info (..)
+  , infoM
     -- * Re-exports
   , module Data.Default
   , module Prometheus.Primitive
@@ -44,7 +45,7 @@ import           Prometheus.Internal.Pure        ( Bucket, Quantile, NoIdentity,
 import           Prometheus.Primitive
 import           Prometheus.Vector
 
-import           Protolude               
+import           Protolude
 
 import           Network.HTTP.Client.Conduit
 import           Network.HTTP.Simple
