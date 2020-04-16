@@ -1,0 +1,48 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: ec1938f014ce91c32184a906d689028429da7200fbd641174c6fa00d725db007
+
+name:           prometheus-port
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/onramp/prometheus-port#readme>
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+library
+  exposed-modules:
+      Prometheus
+      Prometheus.GHC
+  other-modules:
+      Prometheus.Internal.Base
+      Prometheus.Internal.Pure
+      Prometheus.Internal.Pure.Base
+      Prometheus.Internal.Pure.Counter
+      Prometheus.Internal.Pure.Gauge
+      Prometheus.Internal.Pure.Histogram
+      Prometheus.Internal.Pure.Summary
+      Prometheus.Primitive
+      Prometheus.Vector
+      Paths_prometheus_port
+  hs-source-dirs:
+      src
+  default-extensions: FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings TupleSections TypeFamilies
+  ghc-options: -Wall
+  build-depends:
+      base
+    , bytestring
+    , containers
+    , data-default
+    , http-conduit
+    , http-types
+    , protolude
+    , retry
+    , stm
+    , time
+    , unliftio
+  default-language: Haskell2010
