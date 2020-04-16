@@ -35,10 +35,10 @@ library:
     - bytestring
     - containers
     - data-default
-    - exceptions
     - http-types
     - http-conduit
     - protolude
+    - retry
     - stm
     - time
     - unliftio

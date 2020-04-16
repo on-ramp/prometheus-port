@@ -1,27 +1,27 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Prometheus
-  ( -- * Basic metric types
-    counter
+    -- * Basic metric types
+  ( counter
   , gauge
   , histogram
   , summary
     -- * Operations on metric types
     -- ** Construction/Teardown
-  , Registrable (..)
+  , Registrable(..)
   , GenericRegistrable
   , genericRegister
-  , Extractable (..)
+  , Extractable(..)
   , Prometheus.export
   , GenericExportable
   , genericExport
     -- ** Collecting data
-  , Incrementable (..)
-  , Decrementable (..)
-  , Settable (..)
-  , Observable (..)
+  , Incrementable(..)
+  , Decrementable(..)
+  , Settable(..)
+  , Observable(..)
     -- * Vector
   , vector
   , withLabel
@@ -29,7 +29,7 @@ module Prometheus
   , time
   , push
     -- * Additional types
-  , Info (..)
+  , Info(..)
   , infoM
     -- * Re-exports
   , module Data.Default
@@ -39,21 +39,20 @@ module Prometheus
   , Metric
   ) where
 
-import qualified Prometheus.Internal.Base       as Base
-import           Prometheus.Internal.Base hiding ( genericExport )
-import           Prometheus.Internal.Pure        ( Bucket, Quantile, NoIdentity, Label )
+import           Prometheus.Internal.Base    hiding (genericExport)
+import qualified Prometheus.Internal.Base    as Base
+import           Prometheus.Internal.Pure    (Bucket, Label, NoIdentity, Quantile)
 import           Prometheus.Primitive
 import           Prometheus.Vector
 
 import           Protolude
 
-import           Network.HTTP.Client.Conduit
-import           Network.HTTP.Simple
-
+import           Control.Retry
 import           Data.Default
 import           Data.Time.Clock
-
-
+import           Network.HTTP.Client.Conduit
+import           Network.HTTP.Simple
+import           Network.HTTP.Types
 
 -- | A [monotonically increasing counter](https://prometheus.io/docs/concepts/metric_types/#counter).
 --
@@ -83,8 +82,6 @@ histogram = curry construct
 summary :: Info -> [Quantile] -> Metric Summary
 summary = curry construct
 
-
-
 export :: Exportable a => a -> IO LByteString
 export = fmap template . Base.export
 
@@ -92,14 +89,15 @@ export = fmap template . Base.export
 genericExport :: GenericExportable f => f Identity -> IO LByteString
 genericExport = fmap (mconcat . fmap template) . Base.genericExport
 
-
-
 -- | A 'Vector' is an array of similar metrics that differ only in labels.
-vector :: ( Label l
-          , Glue           s  ~ Metric'     o  Identity i
-          , Glue (Vector l s) ~ Metric' (l, o) (Map l)  i
-          )
-       => l -> Metric s -> Metric (Vector l s)
+vector ::
+     ( Label l
+     , Glue s ~ Metric' o Identity i
+     , Glue (Vector l s) ~ Metric' (l, o) (Map l) i
+     )
+  => l
+  -> Metric s
+  -> Metric (Vector l s)
 vector = curry construct
 
 -- | The only way to use a vector.
@@ -114,8 +112,6 @@ vector = curry construct
 withLabel :: Label l => l -> Vector l s -> ((l, Vector l s) -> t) -> t
 withLabel l v a = a (l, v)
 
-
-
 -- | Measure the time it takes for the action to process, then passes time to the action
 --   in a separate thread.
 --
@@ -128,21 +124,35 @@ time toIO f action = do
   _thread <- toIO . forkIO . f . realToFrac $ diffUTCTime t' t
   return result
 
-
 -- | Pushes metrics to a server.
 --
 --   Will definitely return 'InvalidUrlException' if the provided address is inaccessible
 --   or a matching 'SomeException' if the push fails.
-push
-  :: IO LByteString
+push ::
+     IO LByteString
   -> [Char] -- ^ Server to push to
   -> IO (Either SomeException (Response ByteString))
 push exportfunc mayAddress =
   case parseRequest mayAddress of
-    Left ex       -> return $ Left ex
+    Left ex -> return $ Left ex
     Right address -> do
       exported <- exportfunc
-      try $ httpBS
-              . setRequestMethod "POST"
-              . setRequestBodyLBS exported
-              $ address
+      makePost $
+        (try $ httpBS . setRequestMethod "POST" . setRequestBodyLBS exported $ address)
+
+makePost :: IO (Either SomeException (Response ByteString)) -> IO (Either SomeException (Response ByteString))
+makePost = retrying retryDefPolicy shouldRetry . const
+
+shouldRetry :: Monad m => p -> Either SomeException (Response body) -> m Bool
+shouldRetry _ = fmap not . isOk
+
+isOk :: Monad m => Either SomeException (Response body) -> m Bool
+isOk (Left _) = return False
+isOk (Right response) =
+  return $ any ((==) . statusCode . responseStatus $ response) [200 .. 299]
+
+retryDefPolicy :: RetryPolicy
+retryDefPolicy = exponentialBackoff 200000 <> limitRetries threshold
+
+threshold :: Int
+threshold = 5

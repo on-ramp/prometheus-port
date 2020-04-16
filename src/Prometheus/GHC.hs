@@ -1,16 +1,15 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP           #-}
 {-# LANGUAGE DeriveGeneric #-}
 
 module Prometheus.GHC where
 
 import           Prometheus
 
-import           Control.Monad (when)
+import           Control.Monad         (when)
 import           Data.Functor.Identity
 import           GHC.Generics
 import           GHC.Stats
-import           Prelude
-
+import           Protolude
 
 
 data GHCMetrics f = GHCMetrics
@@ -49,41 +48,43 @@ data GHCMetrics f = GHCMetrics
                     deriving Generic
 
 
+ghcDefMetrics :: GHCMetrics Metric
+ghcDefMetrics = ghcMetrics []
 
-ghcMetrics :: GHCMetrics Metric
-ghcMetrics =
+ghcMetrics :: [(LByteString, LByteString)] -> GHCMetrics Metric
+ghcMetrics tags =
   GHCMetrics
-    (counter $ infoM "ghc_gcs_total" "Total number of GCs")
-    (counter $ infoM "ghc_major_gcs_total" "Total number of major (oldest generation) GCs")
-    (counter $ infoM "ghc_allocated_bytes_total" "Total bytes allocated")
-    (gauge   $ infoM "ghc_max_live_bytes" "Maximum live data (including large objects + compact regions)")
-    (gauge   $ infoM "ghc_max_large_objects_bytes" "Maximum live data in large objects")
-    (gauge   $ infoM "ghc_max_compact_bytes" "Maximum live data in compact regions")
-    (gauge   $ infoM "ghc_max_slop_bytes" "Maximum slop")
-    (gauge   $ infoM "ghc_max_mem_in_use_bytes" "Maximum memory in use by the RTS")
-    (counter $ infoM "ghc_cumulative_live_bytes_total" "Sum of live bytes across all major GCs. Divided by major_gcs gives the average live data over the lifetime of the program.")
-    (counter $ infoM "ghc_copied_bytes_total" "Sum of copied_bytes across all GCs")
-    (counter $ infoM "ghc_par_copied_bytes_total" "Sum of copied_bytes across all parallel GCs")
-    (counter $ infoM "ghc_cumulative_par_max_copied_bytes_total" "Sum of par_max_copied_bytes across all parallel GCs")
-    (counter $ infoM "ghc_mutator_cpu_seconds_total" "Total CPU time used by the mutator")
-    (counter $ infoM "ghc_mutator_elapsed_seconds_total" "Total elapsed time used by the mutator")
-    (counter $ infoM "ghc_gc_cpu_seconds_total" "Total CPU time used by the GC")
-    (counter $ infoM "ghc_gc_elapsed_seconds_total" "Total elapsed time used by the GC")
-    (counter $ infoM "ghc_cpu_seconds_total" "Total CPU time (at the previous GC)")
-    (counter $ infoM "ghc_elapsed_seconds_total" "Total elapsed time (at the previous GC)")
-    (gauge   $ infoM "ghc_gcdetails_gen" "The generation number of this GC")
-    (gauge   $ infoM "ghc_gcdetails_threads" "Number of threads used in this GC")
-    (gauge   $ infoM "ghc_gcdetails_allocated_bytes" "Number of bytes allocated since the previous GC")
-    (gauge   $ infoM "ghc_gcdetails_live_bytes" "Total amount of live data in the heap (including large + compact data)")
-    (gauge   $ infoM "ghc_gcdetails_large_objects_bytes" "Total amount of live data in large objects")
-    (gauge   $ infoM "ghc_gcdetails_compact_bytes" "Total amount of live data in compact regions")
-    (gauge   $ infoM "ghc_gcdetails_slop_bytes" "Total amount of slop (wasted memory)")
-    (counter $ infoM "ghc_gcdetails_mem_in_use_bytes" "Total amount of memory in use by the RTS")
-    (gauge   $ infoM "ghc_gcdetails_copied_bytes" "Total amount of data copied during this GC")
-    (gauge   $ infoM "ghc_gcdetails_par_max_copied_bytes" "In parallel GC, the max amount of data copied by any one thread")
-    (gauge   $ infoM "ghc_gcdetails_sync_elapsed_seconds" "The time elapsed during synchronisation before GC")
-    (gauge   $ infoM "ghc_gcdetails_cpu_seconds" "The CPU time used during GC itself")
-    (gauge   $ infoM "ghc_gcdetails_elapsed_seconds" "The time elapsed during GC itself")
+    (counter $ Info "ghc_gcs_total" "Total number of GCs" tags)
+    (counter $ Info "ghc_major_gcs_total" "Total number of major (oldest generation) GCs" tags)
+    (counter $ Info "ghc_allocated_bytes_total" "Total bytes allocated" tags)
+    (gauge   $ Info "ghc_max_live_bytes" "Maximum live data (including large objects + compact regions)" tags)
+    (gauge   $ Info "ghc_max_large_objects_bytes" "Maximum live data in large objects" tags)
+    (gauge   $ Info "ghc_max_compact_bytes" "Maximum live data in compact regions" tags)
+    (gauge   $ Info "ghc_max_slop_bytes" "Maximum slop" tags)
+    (gauge   $ Info "ghc_max_mem_in_use_bytes" "Maximum memory in use by the RTS" tags)
+    (counter $ Info "ghc_cumulative_live_bytes_total" "Sum of live bytes across all major GCs. Divided by major_gcs gives the average live data over the lifetime of the program." tags)
+    (counter $ Info "ghc_copied_bytes_total" "Sum of copied_bytes across all GCs" tags)
+    (counter $ Info "ghc_par_copied_bytes_total" "Sum of copied_bytes across all parallel GCs" tags)
+    (counter $ Info "ghc_cumulative_par_max_copied_bytes_total" "Sum of par_max_copied_bytes across all parallel GCs" tags)
+    (counter $ Info "ghc_mutator_cpu_seconds_total" "Total CPU time used by the mutator" tags)
+    (counter $ Info "ghc_mutator_elapsed_seconds_total" "Total elapsed time used by the mutator" tags)
+    (counter $ Info "ghc_gc_cpu_seconds_total" "Total CPU time used by the GC" tags)
+    (counter $ Info "ghc_gc_elapsed_seconds_total" "Total elapsed time used by the GC" tags)
+    (counter $ Info "ghc_cpu_seconds_total" "Total CPU time (at the previous GC)" tags)
+    (counter $ Info "ghc_elapsed_seconds_total" "Total elapsed time (at the previous GC)" tags)
+    (gauge   $ Info "ghc_gcdetails_gen" "The generation number of this GC" tags)
+    (gauge   $ Info "ghc_gcdetails_threads" "Number of threads used in this GC" tags)
+    (gauge   $ Info "ghc_gcdetails_allocated_bytes" "Number of bytes allocated since the previous GC" tags)
+    (gauge   $ Info "ghc_gcdetails_live_bytes" "Total amount of live data in the heap (including large + compact data)" tags)
+    (gauge   $ Info "ghc_gcdetails_large_objects_bytes" "Total amount of live data in large objects" tags)
+    (gauge   $ Info "ghc_gcdetails_compact_bytes" "Total amount of live data in compact regions" tags)
+    (gauge   $ Info "ghc_gcdetails_slop_bytes" "Total amount of slop (wasted memory)" tags)
+    (counter $ Info "ghc_gcdetails_mem_in_use_bytes" "Total amount of memory in use by the RTS" tags)
+    (gauge   $ Info "ghc_gcdetails_copied_bytes" "Total amount of data copied during this GC" tags)
+    (gauge   $ Info "ghc_gcdetails_par_max_copied_bytes" "In parallel GC, the max amount of data copied by any one thread" tags)
+    (gauge   $ Info "ghc_gcdetails_sync_elapsed_seconds" "The time elapsed during synchronisation before GC" tags)
+    (gauge   $ Info "ghc_gcdetails_cpu_seconds" "The CPU time used during GC itself" tags)
+    (gauge   $ Info "ghc_gcdetails_elapsed_seconds" "The time elapsed during GC itself" tags)
 
 
 
@@ -92,8 +93,8 @@ updateGHCMetrics metrics = do
   isEnabled <- getRTSStatsEnabled
   when isEnabled $ do
     rtsStats <- getRTSStats
-    let updateCounter what from = (.=.) (what metrics) $ from rtsStats
-        updateGauge   what from = (.=.) (what metrics) $ from rtsStats
+    let updateCounter what from_ = (.=.) (what metrics) $ from_ rtsStats
+        updateGauge   what from_ = (.=.) (what metrics) $ from_ rtsStats
     updateCounter _ghcmGcsTotal                         $ fromIntegral . gcs
     updateCounter _ghcmMajorGcsTotal                    $ fromIntegral . major_gcs
     updateCounter _ghcmAllocatedBytesTotal              $ fromIntegral . allocated_bytes
