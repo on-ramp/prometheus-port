@@ -54,6 +54,7 @@ import           Network.HTTP.Client.Conduit
 import           Network.HTTP.Simple
 import           Network.HTTP.Types
 
+
 -- | A [monotonically increasing counter](https://prometheus.io/docs/concepts/metric_types/#counter).
 --
 --   Member of typeclass 'Incrementable'.
@@ -130,18 +131,28 @@ time toIO f action = do
 --   or a matching 'SomeException' if the push fails.
 push ::
      IO LByteString
-  -> [Char] -- ^ Server to push to
-  -> IO (Either SomeException (Response ByteString))
+  -> Text -- ^ Server to push to
+  -> IO ()
 push exportfunc mayAddress =
-  case parseRequest mayAddress of
-    Left ex -> return $ Left ex
+  case parseRequest $ toSL mayAddress of
+    Left ex -> printError ex
     Right address -> do
       exported <- exportfunc
       makePost $
-        (try $ httpBS . setRequestMethod "POST" . setRequestBodyLBS exported $ address)
+        (try $
+         httpBS . setRequestMethod "POST" . setRequestBodyLBS exported $ address)
 
-makePost :: IO (Either SomeException (Response ByteString)) -> IO (Either SomeException (Response ByteString))
-makePost = retrying retryDefPolicy shouldRetry . const
+makePost :: IO (Either SomeException (Response ByteString)) -> IO ()
+makePost action =
+  let runAction =
+        retrying retryDefPolicy shouldRetry (const action) >>= printErrorOrNothing
+   in void $ async runAction
+
+printErrorOrNothing :: Either SomeException b -> IO ()
+printErrorOrNothing = either printError (const $ pure ())
+
+printError :: SomeException -> IO ()
+printError = putText . mappend ("ERROR ON SENDING METRICS ==> ") . show
 
 shouldRetry :: Monad m => p -> Either SomeException (Response body) -> m Bool
 shouldRetry _ = fmap not . isOk

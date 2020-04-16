@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ec1938f014ce91c32184a906d689028429da7200fbd641174c6fa00d725db007
+-- hash: 6e0a32c4c6bd4dc84ac4083aa7762eaf69aa375428442c2079f9bc78aa1de31f
 
 name:           prometheus-port
 version:        0.1.0.0
@@ -34,7 +34,8 @@ library
   default-extensions: FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings TupleSections TypeFamilies
   ghc-options: -Wall
   build-depends:
-      base
+      async
+    , base
     , bytestring
     , containers
     , data-default
