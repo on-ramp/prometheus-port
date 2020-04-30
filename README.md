@@ -85,6 +85,16 @@ withLabel "test" (that registeredThese) (`observe` 6.9)
 bytestr <- genericExport registeredThese
 ```
 
+## Examples
+
+There are a couple of example on how to plug this machinery in real applications under [example](./example) directory.
+
+
+### Non HTTP Application
+[Simple Example](./example/simple/Main.hs) that provides how to plug this in a non HTTP Application.
+
+### HTTP/Wai Application
+[Server Example](./example/server/Main.hs) that provides how to plug this in a Wai HTTP Application. In this case this middleware is going to give you for free metrics on latency and count status code for your HTTP endpoints
 
 
 ## Library implementation
@@ -99,3 +109,5 @@ The underlying datatype representations look like:
   - `l` is a list of label names it was constructed with;
   - `d` is the default singular basic metric (e.g. `Map` with all buckets set to 0 in case of a `Histogram`);
   - `Pure s` is now `Pure (Map l) s`, so it's a map of metrics.
+
+
