@@ -38,7 +38,7 @@ instance PureIncrementable Counter where
   (+.+)     a d = Counter . (+ d) $ unCounter a
 
 instance PureSettable Counter where
-  (=.=) (Counter a) d = 
+  (=.=) (Counter a) d =
     if d > a
       then Counter d
       else Counter a

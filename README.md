@@ -1,4 +1,4 @@
-# prometheus-typehell
+# prometheus-porting
 
 This library is yet another [prometheus client](https://prometheus.io/docs/instrumenting/writing_clientlibs)
 implementation, with [prometheus](https://hackage.haskell.org/package/prometheus) being a bulky
@@ -67,13 +67,13 @@ data These f = These
                  { this :: NoIdentity f Counter
                  , that :: NoIdentity f (Vector1 Summary)
                  } deriving Generic
- 
+
 -- Initialize the said datatype
 these :: These Metric -- You might need this if compiler cannot infer it
 these = These
           (counter $ Info "this" "helpful comment")
           (vector "some" $ summary (Info "that" "helpful comment #2") def)
- 
+
 -- Register the metrics
 registeredThese <- genericRegister these
 

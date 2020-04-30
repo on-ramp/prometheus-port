@@ -31,7 +31,7 @@ instance PureExportable Gauge where
 
 instance PureIncrementable Gauge where
   pureIncrement = Gauge . (+ 1) . unGauge
-  (+.+)     a d = Gauge . (d `subtract`) $ unGauge a
+  (+.+)     a d = Gauge . (+ d) $ unGauge a
 
 instance PureDecrementable Gauge where
   pureDecrement = Gauge . (1 `subtract`) . unGauge

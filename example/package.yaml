@@ -1,14 +1,10 @@
-name:                prometheus-port
+name:                prometheus-port-example
 version:             0.1.0.0
 # github:              "githubuser/prometheus-typehell"
 # license:             BSD3
 # author:              "Author name here"
 # maintainer:          "example@example.com"
 # copyright:           "2019 Author name here"
-
-extra-source-files:
-- README.md
-- ChangeLog.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -56,39 +52,32 @@ default-extensions:
   - TypeOperators
   - TypeFamilies
 
-library:
-  source-dirs:
-    - src
+executables:
+  simple-example:
+    main: Main.hs
+    source-dirs: simple
+    dependencies:
+      - async
+      - prometheus-port
+      - protolude
+    ghc-options:
+      - -threaded
+      - -O3
+      - -rtsopts
+      - -with-rtsopts=-N
 
-  exposed-modules:
-    - Prometheus
-    - Network.Wai.Middleware.Prometheus
-
-  dependencies:
-    - base
-    - async
-    - bytestring
-    - containers
-    - data-default
-    - http-types
-    - http-conduit
-    - protolude
-    - stm
-    - time
-    - unliftio
-    - wai
-    - warp
-
-  ghc-options:
-    - -O3
-    - -Wall
-    - -Werror
-    - -fno-warn-partial-type-signatures
-    - -fconstraint-solver-iterations=0
-    - -Wincomplete-record-updates
-    - -Wincomplete-uni-patterns
-    - -Wredundant-constraints
-    - -Wno-unused-top-binds
-    - -fno-warn-deprecations # allow undefined
-    - -fno-warn-orphans
-
+  middleware-example:
+    main: Main.hs
+    source-dirs: server
+    dependencies:
+      - async
+      - http-types
+      - prometheus-port
+      - protolude
+      - wai
+      - warp
+    ghc-options:
+      - -threaded
+      - -O3
+      - -rtsopts
+      - -with-rtsopts=-N

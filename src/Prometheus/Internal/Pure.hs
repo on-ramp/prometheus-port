@@ -12,7 +12,7 @@ module Prometheus.Internal.Pure
   , Extract
     -- ** Exporting
   , PureExportable (..)
-  , Sample 
+  , Sample
   , addTags
     -- ** Collection
   , PureIncrementable (..)
