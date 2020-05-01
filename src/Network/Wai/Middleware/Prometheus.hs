@@ -3,7 +3,6 @@ module Network.Wai.Middleware.Prometheus
   , prometheusHandlerValue
   ) where
 
-import qualified Data.Default             as Default
 import           Data.Time.Clock.POSIX    (getPOSIXTime)
 import qualified Network.HTTP.Types       as HTTP
 import qualified Network.Wai              as Wai
@@ -25,7 +24,7 @@ httpMetrics component =
   HttpMetrics
     { _hmLatency =
         vector ("handler", "method", "status_code") $
-        histogram infoL Default.def
+        histogram infoL [0, 0.2, 0.4, 0.5, 0.7, 1, 10, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
     , _hmStatus = vector ("handler", "method", "status_code") $ counter infoC
     }
   where
