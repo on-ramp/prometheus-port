@@ -81,3 +81,19 @@ executables:
       - -O3
       - -rtsopts
       - -with-rtsopts=-N
+
+  middleware-custom-example:
+    main: Main.hs
+    source-dirs: serveCustom
+    dependencies:
+      - async
+      - http-types
+      - prometheus-port
+      - protolude
+      - wai
+      - warp
+    ghc-options:
+      - -threaded
+      - -O3
+      - -rtsopts
+      - -with-rtsopts=-N

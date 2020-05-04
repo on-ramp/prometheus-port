@@ -1,22 +1,28 @@
+{-# LANGUAGE DeriveAnyClass #-}
+
 module Network.Wai.Middleware.Prometheus
   ( prometheus
   , prometheusHandlerValue
+  , HttpMetrics
+  , httpMetrics
   ) where
 
-import           Data.Time.Clock.POSIX    (getPOSIXTime)
-import qualified Network.HTTP.Types       as HTTP
-import qualified Network.Wai              as Wai
-import           Prometheus
-import           Prometheus.Http.Internal
+import           Data.Time.Clock.POSIX         (getPOSIXTime)
+import qualified Network.HTTP.Types            as HTTP
+import qualified Network.Wai                   as Wai
+
+import           Prometheus.Internal.Base
+import           Prometheus.Internal.Pure.Base
+import           Prometheus.Primitive
+import           Prometheus.Vector
 import           Protolude
-import           System.IO.Unsafe
 
 data HttpMetrics f =
   HttpMetrics
     { _hmLatency :: NoIdentity f (Vector3 Histogram)
     , _hmStatus  :: NoIdentity f (Vector3 Counter)
     }
-  deriving (Generic)
+  deriving Generic
 
 {-# NOINLINE httpMetrics #-}
 httpMetrics :: Text -> HttpMetrics Metric
@@ -24,7 +30,24 @@ httpMetrics component =
   HttpMetrics
     { _hmLatency =
         vector ("handler", "method", "status_code") $
-        histogram infoL [0, 0.2, 0.4, 0.5, 0.7, 1, 10, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+        histogram
+          infoL
+          [ 0
+          , 0.2
+          , 0.4
+          , 0.5
+          , 0.7
+          , 1
+          , 10
+          , 50
+          , 100
+          , 200
+          , 500
+          , 1000
+          , 2000
+          , 5000
+          , 10000
+          ]
     , _hmStatus = vector ("handler", "method", "status_code") $ counter infoC
     }
   where
@@ -72,10 +95,9 @@ incrementCounter ::
      (LByteString, LByteString, LByteString) -> Vector3 Counter -> IO ()
 incrementCounter tags vc = withLabel tags vc increment
 
-prometheus :: Text -> Wai.Middleware
+prometheus :: HttpMetrics Identity -> Wai.Middleware
 prometheus = prometheusHandlerValue (show . Wai.rawPathInfo)
 
-prometheusHandlerValue :: (Wai.Request -> Text) -> Text -> Wai.Middleware
-prometheusHandlerValue f component app = do
-  let metrics = unsafePerformIO $ genericRegister (httpMetrics component)
-   in prometheusWrap metrics $ (instrumentHandlerValue f metrics) app
+prometheusHandlerValue ::
+     (Wai.Request -> Text) -> HttpMetrics Identity -> Wai.Middleware
+prometheusHandlerValue f metrics app = instrumentHandlerValue f metrics app

@@ -62,7 +62,6 @@ library:
 
   exposed-modules:
     - Prometheus
-    - Network.Wai.Middleware.Prometheus
 
   dependencies:
     - base

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5792ad01ea0e707e5e14c5111b0bb53dd1c8eff29dc2e7d16c696f7b106b2f2c
+-- hash: b2cbfad457433f1bba35b656b8288ac6c0c6d0dc0c0e97c2ca6d7ac1021820ed
 
 name:           prometheus-port
 version:        0.1.0.0
@@ -17,8 +17,8 @@ extra-source-files:
 library
   exposed-modules:
       Prometheus
-      Network.Wai.Middleware.Prometheus
   other-modules:
+      Network.Wai.Middleware.Prometheus
       Prometheus.GHC
       Prometheus.Http.Internal
       Prometheus.Http.Server

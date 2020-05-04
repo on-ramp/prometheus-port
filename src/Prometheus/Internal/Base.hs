@@ -68,7 +68,7 @@ type GenericRegistrable f
      , Generic (f Identity)
      , GRegistrable (Rep (f Metric)) (Rep (f Identity)))
 
-genericRegister :: (GenericRegistrable f) => f Metric -> IO (f Identity)
+genericRegister :: GenericRegistrable f => f Metric -> IO (f Identity)
 genericRegister = fmap to . gregister . from
 
 -- | A 'Generic' 'register' wrapper. The types of `register` and `gregister` are

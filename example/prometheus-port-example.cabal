@@ -4,12 +4,30 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ca2d22abef35e1b4a0a540b5b40a62ac98bb17ced252b789ef9e0b25ae793bb1
+-- hash: bd913cb6d5a369e86455df596d7d96ff5b671ef3e0bd8e6bf999885e5bac36bd
 
 name:           prometheus-port-example
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/onramp/prometheus-port#readme>
 build-type:     Simple
+
+executable middleware-custom-example
+  main-is: Main.hs
+  other-modules:
+      Paths_prometheus_port_example
+  hs-source-dirs:
+      serveCustom
+  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
+  ghc-options: -threaded -O3 -rtsopts -with-rtsopts=-N
+  build-depends:
+      async
+    , base >=4.7 && <5
+    , http-types
+    , prometheus-port
+    , protolude
+    , wai
+    , warp
+  default-language: Haskell2010
 
 executable middleware-example
   main-is: Main.hs
