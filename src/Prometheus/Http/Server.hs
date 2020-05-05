@@ -35,6 +35,7 @@ serveMetrics port appM =
 serveApp ::
      Text -- ^ Component name
   -> Port -- ^ Metric Serve port
+  -> Maybe Tags
   -> Port -- ^ Http App Port
   -> Application
   -> IO ()
@@ -45,6 +46,7 @@ serveAppWithMetrics ::
   => Text
   -> Port
   -> f Identity
+  -> Maybe Tags
   -> Port
   -> Application
   -> IO ()
@@ -56,11 +58,12 @@ serveAppWithMetrics' ::
   => Text
   -> Port
   -> Maybe (f Identity)
+  -> Maybe Tags
   -> Port
   -> Application
   -> IO ()
-serveAppWithMetrics' component port metrics portApp app = do
-  httpM <- genericRegister (httpMetrics component)
+serveAppWithMetrics' component port metrics maybeTags portApp app = do
+  httpM <- genericRegister (httpMetrics component maybeTags)
   concurrently_
     (serveMetrics' port metrics (Just httpM))
     (run portApp (prometheus httpM app))

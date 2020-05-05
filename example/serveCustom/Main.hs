@@ -34,7 +34,7 @@ test =
 main :: IO ()
 main = do
   reg <- genericRegister test
-  serveAppWithMetrics "my_app" 9090 reg 3000 $ \req respond -> do
+  serveAppWithMetrics "my_app" 9090 reg Nothing 3000 $ \req respond -> do
     putText ("Request: " <> show req)
     tGauge reg .+. 200
     tHistogram reg `observe` 1.7

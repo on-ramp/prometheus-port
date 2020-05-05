@@ -25,8 +25,8 @@ data HttpMetrics f =
   deriving Generic
 
 {-# NOINLINE httpMetrics #-}
-httpMetrics :: Text -> HttpMetrics Metric
-httpMetrics component =
+httpMetrics :: Text -> Maybe Tags -> HttpMetrics Metric
+httpMetrics component maybeTags =
   HttpMetrics
     { _hmLatency =
         vector ("handler", "method", "status_code") $
@@ -51,14 +51,17 @@ httpMetrics component =
     , _hmStatus = vector ("handler", "method", "status_code") $ counter infoC
     }
   where
+    tags = maybe [] identity maybeTags
     infoL =
-      infoM
+      Info
         (toSL (component <> "_" <> "http_request_duration_milliseconds"))
         "The HTTP request latencies in milliseconds."
+        tags
     infoC =
-      infoM
+      Info
         (toSL (component <> "_" <> "http_status"))
         "The HTTP respond status code count for each request."
+        tags
 
 -- | This function is used to populate the @handler@ label of all Prometheus metrics recorded by this library.
 --
@@ -96,7 +99,7 @@ incrementCounter ::
 incrementCounter tags vc = withLabel tags vc increment
 
 prometheus :: HttpMetrics Identity -> Wai.Middleware
-prometheus = prometheusHandlerValue (show . Wai.rawPathInfo)
+prometheus = prometheusHandlerValue (toSL . Wai.rawPathInfo)
 
 prometheusHandlerValue ::
      (Wai.Request -> Text) -> HttpMetrics Identity -> Wai.Middleware
