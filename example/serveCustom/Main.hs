@@ -16,15 +16,18 @@ data Test f =
     }
   deriving Generic
 
+tags :: [(LByteString, LByteString)]
+tags = [("tag_1", "val_1")]
+
 test :: Test Metric
 test =
   Test
-    (counter $ infoM "tCounter" "tCounterHelp")
-    (gauge $ infoM "tGauge" "tGaugeHelp")
-    (histogram (infoM "tHistogram" "tHistogramHelp") def)
-    (summary (infoM "tSummary" "tSummaryHelp") def)
-    (vector "this" . counter $ infoM "tvCounter" "tvCounterHelp")
-    (vector ("one", "two") $ summary (infoM "tvSummary" "tvSummaryHelp") def)
+    (counter $ Info "tCounter" "tCounterHelp" tags)
+    (gauge $ Info "tGauge" "tGaugeHelp" tags)
+    (histogram (Info "tHistogram" "tHistogramHelp" tags) def)
+    (summary (Info "tSummary" "tSummaryHelp" tags) def)
+    (vector "this" . counter $ Info "tvCounter" "tvCounterHelp" tags)
+    (vector ("one", "two") $ summary (Info "tvSummary" "tvSummaryHelp" tags) def)
 
 {-
    This example provides an idea on how to start your HTTP application
@@ -34,7 +37,7 @@ test =
 main :: IO ()
 main = do
   reg <- genericRegister test
-  serveAppWithMetrics "my_app" 9090 reg Nothing 3000 $ \req respond -> do
+  serveAppWithMetrics "my_app" 9090 reg (Just tags) 3000 $ \req respond -> do
     putText ("Request: " <> show req)
     tGauge reg .+. 200
     tHistogram reg `observe` 1.7

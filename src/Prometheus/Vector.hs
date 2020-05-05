@@ -57,12 +57,12 @@ instance ( Label l
          , PureExportable i
          )
          => Exportable (Vector l s) where
-  export (Vector (Impure (info@(Info _ _ tags), (labels, _)) i)) =
+  export (Vector (Impure (info@(Info _ _ _), (labels, _)) i)) =
     let proxy = Proxy :: Proxy i
     in Template info (pureName proxy) . mconcat . fmap f . Map.toList
           . unPure <$> readTVarIO i
     where
-      f (l, o) = addTags ((flatten (labels) l) ++ tags) <$> pureExport o
+      f (l, o) = addTags (flatten (labels) l) <$> pureExport o
 
 
 

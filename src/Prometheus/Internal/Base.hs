@@ -147,7 +147,7 @@ template (Template (Info name help additionalTags) metric samples) =
   fmap fromSamples samples
   where
     fromSamples (DoubleSample suffix labels value) =
-      mconcat [name, suffix, fromLabels labels, " ", show value, "\n"]
+      mconcat [name, suffix, fromLabels (labels ++ additionalTags), " ", show value, "\n"]
     fromSamples (IntSample suffix labels value) =
       mconcat
         [ name
