@@ -133,21 +133,34 @@ class Settable s where
 class Observable s where
   observe :: s -> Double -> IO ()
 
-data Template =
-  Template Info LByteString [Sample]
+data Template
+  = Template Info LByteString [Sample]
+  | Empty
   deriving (Show)
+
+toTemplate :: Info -> LByteString -> PureExportSample -> Template
+toTemplate _ _ NoSample               = Empty
+toTemplate i b (ExportSample samples) = Template i b samples
 
 -- | Class of objects that can be transformed into Prometheus metrics.
 --
 --   This doesn't really have to be a class ¯\_(ツ)_/¯
 template :: Template -> LByteString
+template Empty = ""
 template (Template (Info name help additionalTags) metric samples) =
   mconcat $
   ["# HELP ", name, " ", help, "\n", "# TYPE ", name, " ", metric, "\n"] <>
   fmap fromSamples samples
   where
     fromSamples (DoubleSample suffix labels value) =
-      mconcat [name, suffix, fromLabels (labels ++ additionalTags), " ", show value, "\n"]
+      mconcat
+        [ name
+        , suffix
+        , fromLabels (labels ++ additionalTags)
+        , " "
+        , show value
+        , "\n"
+        ]
     fromSamples (IntSample suffix labels value) =
       mconcat
         [ name

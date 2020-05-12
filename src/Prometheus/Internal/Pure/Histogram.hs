@@ -56,7 +56,7 @@ instance Extract Histogram ~ e => PureExtractable e Histogram where
 
 instance PureExportable Histogram where
   pureExport (Histogram hsum count buckets) =
-    converted buckets <> [ DoubleSample "_sum" [] hsum, IntSample "_count" [] count ]
+    ExportSample (converted buckets <> [ DoubleSample "_sum" [] hsum, IntSample "_count" [] count ])
     where
       converted = fmap (\(k, a) -> IntSample "_bucket" [("le", showWithInf k)] a) . cumulative . Map.toList
 

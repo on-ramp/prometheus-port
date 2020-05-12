@@ -31,7 +31,7 @@ instance Extract Counter ~ e => PureExtractable e Counter where
   pureExtract = unCounter
 
 instance PureExportable Counter where
-  pureExport (Counter v) = [ DoubleSample "" [] v ]
+  pureExport (Counter v) = ExportSample [ DoubleSample "" [] v ]
 
 instance PureIncrementable Counter where
   pureIncrement = Counter . (+ 1) . unCounter

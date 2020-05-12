@@ -8,8 +8,13 @@ import           Control.Concurrent.STM.TVar
 import           Prometheus.Internal.Base    as Base
 import           Prometheus.Internal.Pure    hiding (Counter, Gauge, Histogram, Summary)
 import qualified Prometheus.Internal.Pure    as Pure
+import qualified Prometheus.Internal.Pure.Base as B
 import           Prometheus.Vector
 import           Protolude
+
+data NoneMetric = NoneMetric
+
+type None = Impure () Identity NoneMetric
 
 type Counter = Impure () Identity Pure.Counter
 
@@ -36,7 +41,8 @@ instance (PureNamed i, PureExportable i) =>
          Exportable (Impure o Identity i) where
   export (Impure (info, _) i) =
     let proxy = Proxy :: Proxy i
-     in Template info (pureName proxy) . pureExport <$> readTVarIO i
+     in toTemplate info (pureName proxy) . pureExport <$> readTVarIO i
+
 
 instance PureIncrementable (Pure f i) => Incrementable (Impure o f i) where
   increment (Impure _ s) = atomically $ modifyTVar' s pureIncrement
@@ -51,6 +57,23 @@ instance PureSettable (Pure f i) => Settable (Impure o f i) where
 
 instance PureObservable (Pure f i) => Observable (Impure o f i) where
   observe (Impure _ s) d = atomically . modifyTVar' s $ flip pureObserve d
+
+instance PureNamed NoneMetric where
+  pureName _ = "NONE"
+
+instance PureConstructible () NoneMetric where
+  pureConstruct _ = NoneMetric
+
+type instance Extract NoneMetric = ()
+
+instance Extract NoneMetric ~ e => PureExtractable e NoneMetric where
+  pureExtract _ = ()
+
+instance PureExportable NoneMetric where
+  pureExport _ = B.NoSample
+
+none :: Metric None
+none = construct (infoM "NONE" "NONE", ())
 
 -- | A [monotonically increasing counter](https://prometheus.io/docs/concepts/metric_types/#counter).
 --

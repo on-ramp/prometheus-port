@@ -18,7 +18,7 @@ import           Prometheus.Internal.Pure.Base
 import           Prometheus.Primitive
 import           Protolude
 
-data NoMetric f = NoMetric (NoIdentity f Counter)
+data NoMetric f = NoMetric (NoIdentity f None)
   deriving Generic
 
 serveMetrics'' :: GenericExportable f => Port -> WrappedMetrics f -> IO ()

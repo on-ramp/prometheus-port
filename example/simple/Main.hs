@@ -14,6 +14,7 @@ data Test f =
     , tSummary   :: NoIdentity f Summary
     , tvCounter  :: NoIdentity f (Vector LByteString Counter)
     , tvSummary  :: NoIdentity f (Vector (LByteString, LByteString) Summary)
+    , holeM      :: NoIdentity f None
     }
   deriving Generic
 
@@ -26,6 +27,7 @@ test =
     (summary (infoM "tSummary" "tSummaryHelp") def)
     (vector "this" . counter $ infoM "tvCounter" "tvCounterHelp")
     (vector ("one", "two") $ summary (infoM "tvSummary" "tvSummaryHelp") def)
+    none
 
 main :: IO ()
 main = do

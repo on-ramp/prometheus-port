@@ -3,7 +3,7 @@
 
 {-|
     The summary code is a 1-1 copy from [prometheus-client]
-    (https://hackage.haskell.org/package/prometheus-client/docs/src/Prometheus.Metric.Summary.html) 
+    (https://hackage.haskell.org/package/prometheus-client/docs/src/Prometheus.Metric.Summary.html)
     and should probably be rewritten one day, as this implementation seems rather weak (but
     I never bothered to figure out how it actually works, take that >:P)
  -}
@@ -79,7 +79,7 @@ instance Extract Estimator ~ e => PureExtractable e Estimator where
 instance PureExportable Estimator where
   pureExport estimator =
     let (Summary count ssum quantiles) = pureExtract estimator
-    in converted quantiles <> [ DoubleSample "_sum" [] ssum, IntSample "_count" [] count ]
+    in ExportSample (converted quantiles <> [ DoubleSample "_sum" [] ssum, IntSample "_count" [] count ])
     where
       converted = fmap (\(k, a) -> DoubleSample "" [("quantile", show k)] a)
 

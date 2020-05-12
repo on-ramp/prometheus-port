@@ -27,7 +27,7 @@ instance Extract Gauge ~ e => PureExtractable e Gauge where
   pureExtract = unGauge
 
 instance PureExportable Gauge where
-  pureExport (Gauge v) = [ DoubleSample "" [] v ]
+  pureExport (Gauge v) = ExportSample [ DoubleSample "" [] v ]
 
 instance PureIncrementable Gauge where
   pureIncrement = Gauge . (+ 1) . unGauge
