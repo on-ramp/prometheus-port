@@ -3,11 +3,14 @@
 
 module Prometheus.Http.Server
   ( serveMetrics
+  , serveMetricsM
   , serveApp
   , serveAppWithMetrics
+  , module Data.List.HList
   ) where
 
 import           Control.Concurrent.Async
+import           Data.List.HList
 import           Network.HTTP.Types                (hContentType, status404)
 import           Network.Wai                       (Application, responseLBS)
 import           Network.Wai.Handler.Warp          (Port, run)
@@ -21,16 +24,17 @@ import           Protolude
 data NoMetric f = NoMetric (NoIdentity f None)
   deriving Generic
 
-serveMetrics'' :: GenericExportable f => Port -> WrappedMetrics f -> IO ()
-serveMetrics'' port =
+serveMetrics' :: AllExportable f => Port -> Maybe (HList f) -> IO ()
+serveMetrics' port =
   run port . flip prometheusWrap response404
-
-serveMetrics' :: GenericExportable f => Port -> Maybe (f Identity) -> Maybe (HttpMetrics Identity) -> IO ()
-serveMetrics' port appM httpM = serveMetrics'' port (WrappedMetrics appM httpM)
 
 serveMetrics :: GenericExportable f => Port -> f Identity -> IO ()
 serveMetrics port appM =
-  serveMetrics' port (Just appM) Nothing
+  serveMetrics' port (Just (appM :# HNil))
+
+serveMetricsM :: AllExportable f => Port -> HList f -> IO ()
+serveMetricsM port appM =
+  serveMetrics' port (Just appM)
 
 serveApp ::
      Text -- ^ Component name
@@ -39,7 +43,9 @@ serveApp ::
   -> Port -- ^ Http App Port
   -> Application
   -> IO ()
-serveApp component port = serveAppWithMetrics' @NoMetric component port Nothing
+serveApp component port maybeTags portApp app = do
+  noAppMetric <- genericRegister (NoMetric none)
+  serveAppWithMetrics component port noAppMetric maybeTags portApp app
 
 serveAppWithMetrics ::
      GenericExportable f
@@ -50,22 +56,10 @@ serveAppWithMetrics ::
   -> Port
   -> Application
   -> IO ()
-serveAppWithMetrics component port metrics =
-  serveAppWithMetrics' component port (Just metrics)
-
-serveAppWithMetrics' ::
-     GenericExportable f
-  => Text
-  -> Port
-  -> Maybe (f Identity)
-  -> Maybe Tags
-  -> Port
-  -> Application
-  -> IO ()
-serveAppWithMetrics' component port metrics maybeTags portApp app = do
+serveAppWithMetrics component port metrics maybeTags portApp app = do
   httpM <- genericRegister (httpMetrics component maybeTags)
   concurrently_
-    (serveMetrics' port metrics (Just httpM))
+    (serveMetrics' port (Just $ (metrics :# httpM :# HNil)))
     (run portApp (prometheus httpM app))
 
 response404 :: Application

@@ -1,11 +1,13 @@
 {-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE PolyKinds #-}
 
 module Prometheus.Internal.Base where
 
 import           Control.Concurrent.STM.TVar
 import qualified Data.ByteString.Lazy          as BL
+--import           Data.Kind                     (Constraint)
 import           Prometheus.Internal.Pure.Base
 import           Protolude
 
@@ -118,6 +120,10 @@ genericExport' = gexport . from
 -- | Convert any 'Generic' metric datatype into a Prometheus-compatible 'LByteString'
 genericExport :: GenericExportable f => f Identity -> IO LByteString
 genericExport = fmap (mconcat . fmap template) . genericExport'
+
+type family AllExportable (ts :: [(* -> *) -> *]) :: Constraint where
+  AllExportable '[] = ()
+  AllExportable (x ': ts) = (GenericExportable x, AllExportable ts)
 
 class Incrementable s where
   increment :: s -> IO ()

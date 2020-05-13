@@ -1,40 +1,39 @@
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes#-}
+
 module Prometheus.Http.Internal
   ( prometheusWrap
-  , WrappedMetrics(..)
   ) where
 
+import           Data.List.HList
 import           Network.HTTP.Types                (hContentType, methodGet, status200)
 import           Network.Wai                       (Application, Request, pathInfo, requestMethod, responseLBS)
-import           Network.Wai.Middleware.Prometheus
 import           Prometheus.Internal.Base
 import           Protolude
 
-data WrappedMetrics f =
-  WrappedMetrics
-    { _wmAppM  :: Maybe (f Identity)
-    , _wmHttpM :: Maybe (HttpMetrics Identity)
-    }
+data Export = Export
+instance GenericExportable f => Apply Export (f Identity) LByteString IO where
+  apply _ x y = flip mappend y <$> genericExport x
 
+instance AllExportable xs =>
+         FoldrH Export LByteString xs IO where
+  foldrH _ acc HNil = return acc
+  foldrH f acc (x :# xs) = apply f x =<< foldrH f acc xs
 
-exportMetrics :: GenericExportable f => WrappedMetrics f -> IO LByteString
-exportMetrics WrappedMetrics{..} = let exportAppM = maybe (return "") genericExport _wmAppM
-                                       exportHttpM = maybe (return "") genericExport _wmHttpM
-                                    in foldMap identity [exportAppM, exportHttpM]
+exportMetrics :: forall f. AllExportable f => HList f -> IO LByteString
+exportMetrics = foldrH Export ""
 
 prometheusPath :: [Text]
 prometheusPath = ["metrics"]
 
 prometheusWrap ::
-     GenericExportable f
-  => WrappedMetrics f
-  -> Application
-  -> Application
+     AllExportable f => Maybe (HList f) -> Application -> Application
 prometheusWrap wrapped app request respond
   | isPrometheusRequest request = respond =<< prometheusResponse
   | otherwise = app request respond
   where
     prometheusResponse =
-      fmap (responseLBS status200 headers) (exportMetrics wrapped)
+      fmap (responseLBS status200 headers) (maybe (return "") exportMetrics wrapped)
     headers = [(hContentType, "text/plain; version=0.0.4")]
 
 isPrometheusRequest :: Request -> Bool
