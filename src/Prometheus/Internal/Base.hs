@@ -1,13 +1,13 @@
 {-# LANGUAGE ConstraintKinds      #-}
+{-# LANGUAGE PolyKinds            #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE PolyKinds #-}
 
 module Prometheus.Internal.Base where
 
 import           Control.Concurrent.STM.TVar
 import qualified Data.ByteString.Lazy          as BL
---import           Data.Kind                     (Constraint)
+import           Data.Text                     as T (replace)
 import           Prometheus.Internal.Pure.Base
 import           Protolude
 
@@ -148,6 +148,9 @@ toTemplate :: Info -> LByteString -> PureExportSample -> Template
 toTemplate _ _ NoSample               = Empty
 toTemplate i b (ExportSample samples) = Template i b samples
 
+escape :: LByteString -> LByteString
+escape = toS . T.replace "\n" "\\n" . T.replace "\"" "\\\"" . T.replace "\\" "\\\\" . toS
+
 -- | Class of objects that can be transformed into Prometheus metrics.
 --
 --   This doesn't really have to be a class ¯\_(ツ)_/¯
@@ -178,5 +181,5 @@ template (Template (Info name help additionalTags) metric samples) =
         ]
     fromLabels [] = ""
     fromLabels labels =
-      let expand (k, a) = mconcat [k, "=\"", a, "\""]
+      let expand (k, a) = mconcat [k, "=\"", escape a, "\""]
        in mconcat ["{", BL.intercalate ", " $ fmap expand labels, "}"]

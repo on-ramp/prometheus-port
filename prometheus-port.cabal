@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f6ebbea4a96a5e025c3f3946337176084efc7828b00ec989555dee86819cd0f1
+-- hash: 84e1d82382e2d62e4fd7e724dafa88e57c211aba8ae9663f9abb3d66782dfcaa
 
 name:           prometheus-port
 version:        0.1.0.0
@@ -47,6 +47,7 @@ library
     , http-types
     , protolude
     , stm
+    , text
     , time
     , unliftio
     , wai

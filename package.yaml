@@ -73,6 +73,7 @@ library:
     - http-conduit
     - protolude
     - stm
+    - text
     - time
     - unliftio
     - wai
