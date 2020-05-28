@@ -7,6 +7,7 @@ module Prometheus.Http.Server
   , serveApp
   , serveAppWithMetrics
   , module Data.List.HList
+  , AllExportable
   ) where
 
 import           Control.Concurrent.Async
