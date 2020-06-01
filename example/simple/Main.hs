@@ -41,7 +41,7 @@ main :: IO ()
 main = do
   reg <- genericRegister test
   reg2 <- genericRegister test2
-  concurrently_ (serveMetricsM 9090 (reg :# reg2 :# HNil)) $ do
+  race_ (serveMetricsM 9090 (reg :# reg2 :# HNil)) $ do
     tGauge reg .+. 200
     tHistogram reg `observe` 1.7
     tSummary reg `observe` 0.9

@@ -59,9 +59,9 @@ serveAppWithMetrics ::
   -> IO ()
 serveAppWithMetrics component port metrics maybeTags portApp app = do
   httpM <- genericRegister (httpMetrics component maybeTags)
-  concurrently_
-    (serveMetrics' port (Just $ (metrics :# httpM :# HNil)))
+  race_
     (run portApp (prometheus httpM app))
+    (serveMetrics' port (Just $ (metrics :# httpM :# HNil)))
 
 response404 :: Application
 response404 = \_ resp -> resp $ responseLBS status404 header404 body404
