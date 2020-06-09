@@ -2,17 +2,23 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Prometheus.Primitive where
+module Prometheus.Primitive
+  ( module Export
+  , module B
+  , module Prometheus.Primitive
+  ) where
 
 import           Control.Concurrent.STM.TVar
-import           Prometheus.Internal.Base    as Base
-import           Prometheus.Internal.Pure    hiding (Counter, Gauge, Histogram, Summary)
-import qualified Prometheus.Internal.Pure    as Pure
+import qualified Prometheus.Internal.Base      as Base
+import           Prometheus.Internal.Base      as Export hiding (export)
+import           Prometheus.Internal.Pure      hiding (Counter, Gauge, Histogram, Summary)
+import qualified Prometheus.Internal.Pure      as Pure
 import qualified Prometheus.Internal.Pure.Base as B
 import           Prometheus.Vector
 import           Protolude
 
-data NoneMetric = NoneMetric
+data NoneMetric =
+  NoneMetric
 
 type None = Impure () Identity NoneMetric
 
@@ -42,7 +48,6 @@ instance (PureNamed i, PureExportable i) =>
   export (Impure (info, _) i) =
     let proxy = Proxy :: Proxy i
      in toTemplate info (pureName proxy) . pureExport <$> readTVarIO i
-
 
 instance PureIncrementable (Pure f i) => Incrementable (Impure o f i) where
   increment (Impure _ s) = atomically $ modifyTVar' s pureIncrement

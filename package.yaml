@@ -70,17 +70,15 @@ library:
     - containers
     - data-default
     - http-types
-    - http-conduit
     - protolude
     - stm
     - text
     - time
-    - unliftio
     - wai
     - warp
 
   ghc-options:
-    - -O3
+    - -O2
     - -Wall
     - -Werror
     - -fno-warn-partial-type-signatures
@@ -92,3 +90,20 @@ library:
     - -fno-warn-deprecations # allow undefined
     - -fno-warn-orphans
 
+tests:
+  spec:
+    main: Spec.hs
+    source-dirs:
+      - test
+    ghc-options:
+      - -threaded
+      - -O2
+      - -Wno-unused-local-binds
+      - -Wno-unused-matches
+    dependencies:
+      - hspec == 2.*
+      - hspec-expectations
+      - HUnit
+      - prometheus-port
+      - protolude
+      - QuickCheck
