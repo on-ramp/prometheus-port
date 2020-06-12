@@ -37,7 +37,8 @@ data Histogram = Histogram
                    , hBuckets :: Map Bucket Int
                    } deriving Show
 
-
+mkHisto :: Double -> Int -> Map Bucket Int -> Histogram
+mkHisto = Histogram
 
 instance PureNamed Histogram where
   pureName _ = "histogram"

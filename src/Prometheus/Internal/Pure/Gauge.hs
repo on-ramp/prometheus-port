@@ -15,6 +15,9 @@ import           Data.Default
 newtype Gauge = Gauge { unGauge :: Double }
                 deriving Default
 
+mkGauge :: Double -> Gauge
+mkGauge = Gauge
+
 instance PureNamed Gauge where
   pureName _ = "gauge"
 

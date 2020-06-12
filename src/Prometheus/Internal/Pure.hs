@@ -26,11 +26,14 @@ module Prometheus.Internal.Pure
     -- * Pure metric types themselves
     -- ** Counter
   , Counter
+  , mkCounter
     -- ** Gauge
   , Gauge
+  , mkGauge
     -- ** Histogram
   , Bucket
   , Histogram
+  , mkHisto
     -- ** Summary
   , Quantile
   , Estimator

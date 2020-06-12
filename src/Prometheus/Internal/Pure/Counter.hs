@@ -14,6 +14,9 @@ import           Data.Default
 newtype Counter = Counter { unCounter :: Double }
                   deriving Default
 
+mkCounter :: Double -> Counter
+mkCounter = Counter
+
 pureUnsafeSet :: Pure Identity Counter -> Double -> Pure Identity Counter
 pureUnsafeSet _ = Pure . Counter
 
