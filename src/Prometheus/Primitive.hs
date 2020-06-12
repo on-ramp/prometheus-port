@@ -5,6 +5,7 @@
 module Prometheus.Primitive
   ( module Export
   , module B
+  , module P
   , module Prometheus.Primitive
   ) where
 
@@ -13,6 +14,7 @@ import qualified Prometheus.Internal.Base      as Base
 import           Prometheus.Internal.Base      as Export hiding (export)
 import           Prometheus.Internal.Pure      hiding (Counter, Gauge, Histogram, Summary)
 import qualified Prometheus.Internal.Pure      as Pure
+import qualified Prometheus.Internal.Pure      as P (mkHisto, mkGauge, mkCounter)
 import qualified Prometheus.Internal.Pure.Base as B
 import           Prometheus.Vector
 import           Protolude
