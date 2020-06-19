@@ -38,6 +38,7 @@ module Prometheus.Internal.Pure
   , Quantile
   , Estimator
   , Summary
+  , PureExportSample(..)
   ) where
 
 

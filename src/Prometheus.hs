@@ -19,6 +19,5 @@ module Prometheus
 import           Data.Default
 import           Prometheus.GHC
 import           Prometheus.Http.Server
-import           Prometheus.Internal.Pure (NoIdentity)
 import           Prometheus.Primitive
 import           Prometheus.Vector
