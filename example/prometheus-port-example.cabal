@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bd913cb6d5a369e86455df596d7d96ff5b671ef3e0bd8e6bf999885e5bac36bd
+-- hash: 13017fdeb35f8b8064084030c9e6758d7513d1ecbb65c76dd4c82f12b17862e3
 
 name:           prometheus-port-example
 version:        0.1.0.0
@@ -17,7 +17,7 @@ executable middleware-custom-example
       Paths_prometheus_port_example
   hs-source-dirs:
       serveCustom
-  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
+  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
   ghc-options: -threaded -O3 -rtsopts -with-rtsopts=-N
   build-depends:
       async
@@ -35,7 +35,7 @@ executable middleware-example
       Paths_prometheus_port_example
   hs-source-dirs:
       server
-  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
+  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
   ghc-options: -threaded -O3 -rtsopts -with-rtsopts=-N
   build-depends:
       async
@@ -53,7 +53,7 @@ executable simple-example
       Paths_prometheus_port_example
   hs-source-dirs:
       simple
-  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
+  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
   ghc-options: -threaded -O3 -rtsopts -with-rtsopts=-N
   build-depends:
       async

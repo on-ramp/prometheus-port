@@ -2,3 +2,4 @@
 prometheus-typehell.cabal
 *~
 tags
+.DS_Store

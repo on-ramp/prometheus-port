@@ -3,7 +3,6 @@
 
 module Prometheus.GHC where
 
-import           Control.Monad                 (when)
 import           Data.Functor.Identity
 import           GHC.Generics
 import           GHC.Stats

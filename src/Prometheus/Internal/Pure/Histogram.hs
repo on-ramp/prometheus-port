@@ -10,10 +10,8 @@ import           Protolude
 import           Data.Default
 import qualified Data.Map as Map
 
-
-
 -- | >>> def ::  [Bucket]
---   [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
+-- [5.0e-3,1.0e-2,2.5e-2,5.0e-2,0.1,0.25,0.5,1.0,2.5,5.0,10.0]
 type Bucket = Double
 
 instance {-# OVERLAPS #-} Default [Bucket] where

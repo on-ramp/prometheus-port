@@ -7,18 +7,19 @@ module Prometheus.Internal.Base where
 
 import           Control.Concurrent.STM.TVar
 import qualified Data.ByteString.Lazy          as BL
-import           Data.Text                     as T (replace)
+import           Data.Text                     as T
+                                                ( replace )
 import           Prometheus.Internal.Pure.Base
 import           Protolude
+import           Protolude.Conv as C
 
 -- Basic description of metrics
-data Info =
-  Info
-    { iName           :: LByteString -- ^ Name of the metric
-    , iHelp           :: LByteString -- ^ Additional commentary
-    , iAdditionalTags :: [(LByteString, LByteString)]
-    }
-  deriving (Show)
+data Info = Info
+  { iName           :: LByteString -- ^ Name of the metric
+  , iHelp           :: LByteString -- ^ Additional commentary
+  , iAdditionalTags :: [(LByteString, LByteString)]
+  }
+  deriving Show
 
 infoM :: LByteString -> LByteString -> Info
 infoM name help = Info name help []
@@ -26,16 +27,14 @@ infoM name help = Info name help []
 --  A wrapper that duplicates all of additional information stored by 'Impure' into a separate
 --  argument. It's full duplication only because Vectors need to convert '_mUninitialized'
 --  from Identity to (Map l) and that requires constructing another 'Impure'.
-data Metric' o f s =
-  Metric'
-    { _mOptional      :: (Info, o)
-    , _mUninitialized :: TVar (Pure f s) -> Impure o f s
-    }
+data Metric' o f s = Metric'
+  { _mOptional      :: (Info, o)
+  , _mUninitialized :: TVar (Pure f s) -> Impure o f s
+  }
 
 --  A core datatype of this module, takes an existing 'Pure' implementation of a metric
 --  and moves it in a separate 'TVar' with additional information on the side.
-data Impure o f s =
-  Impure (Info, o) (TVar (Pure f s))
+data Impure o f s = Impure (Info, o) (TVar (Pure f s))
 
 --  'Glue' + 'Metric' serve as a way to hide pointless dependencies inside the library.
 type family Glue (a :: *)
@@ -66,9 +65,10 @@ class Exportable s where
   export :: s -> IO Template
 
 type GenericRegistrable f
-   = ( Generic (f Metric)
-     , Generic (f Identity)
-     , GRegistrable (Rep (f Metric)) (Rep (f Identity)))
+  = ( Generic (f Metric)
+    , Generic (f Identity)
+    , GRegistrable (Rep (f Metric)) (Rep (f Identity))
+    )
 
 genericRegister :: GenericRegistrable f => f Metric -> IO (f Identity)
 genericRegister = fmap to . gregister . from
@@ -112,7 +112,7 @@ instance Exportable s => GExportable (K1 a s) where
   gexport (K1 k) = (: []) <$> export k
 
 type GenericExportable f
-   = (Generic (f Identity), GExportable (Rep (f Identity)))
+  = (Generic (f Identity), GExportable (Rep (f Identity)))
 
 genericExport' :: GenericExportable f => f Identity -> IO [Template]
 genericExport' = gexport . from
@@ -149,7 +149,12 @@ toTemplate _ _ NoSample               = Empty
 toTemplate i b (ExportSample samples) = Template i b samples
 
 escape :: LByteString -> LByteString
-escape = toS . T.replace "\n" "\\n" . T.replace "\"" "\\\"" . T.replace "\\" "\\\\" . toS
+escape =
+  C.toS
+    . T.replace "\n" "\\n"
+    . T.replace "\"" "\\\""
+    . T.replace "\\" "\\\\"
+    . C.toS
 
 --  Class of objects that can be transformed into Prometheus metrics.
 --
@@ -157,29 +162,15 @@ escape = toS . T.replace "\n" "\\n" . T.replace "\"" "\\\"" . T.replace "\\" "\\
 template :: Template -> LByteString
 template Empty = ""
 template (Template (Info name help additionalTags) metric samples) =
-  mconcat $
-  ["# HELP ", name, " ", help, "\n", "# TYPE ", name, " ", metric, "\n"] <>
-  fmap fromSamples samples
-  where
-    fromSamples (DoubleSample suffix labels value) =
-      mconcat
-        [ name
-        , suffix
-        , fromLabels (labels ++ additionalTags)
-        , " "
-        , show value
-        , "\n"
-        ]
-    fromSamples (IntSample suffix labels value) =
-      mconcat
-        [ name
-        , suffix
-        , fromLabels (labels ++ additionalTags)
-        , " "
-        , show value
-        , "\n"
-        ]
-    fromLabels [] = ""
-    fromLabels labels =
-      let expand (k, a) = mconcat [k, "=\"", escape a, "\""]
-       in mconcat ["{", BL.intercalate ", " $ fmap expand labels, "}"]
+  mconcat
+    $  ["# HELP ", name, " ", help, "\n", "# TYPE ", name, " ", metric, "\n"]
+    <> fmap fromSamples samples
+ where
+  fromSamples (DoubleSample suffix labels value) = mconcat
+    [name, suffix, fromLabels (labels ++ additionalTags), " ", show value, "\n"]
+  fromSamples (IntSample suffix labels value) = mconcat
+    [name, suffix, fromLabels (labels ++ additionalTags), " ", show value, "\n"]
+  fromLabels [] = ""
+  fromLabels labels =
+    let expand (k, a) = mconcat [k, "=\"", escape a, "\""]
+    in  mconcat ["{", BL.intercalate ", " $ fmap expand labels, "}"]

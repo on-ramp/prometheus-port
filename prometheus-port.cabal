@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fd3429dcdce2ad3f7ed3c846a4a4825178fd891755e1a03a2171a94bc1a227a5
+-- hash: 8c32fb3343d704c45397247d45089b1fae76f946005b3889858305927154ebe1
 
 name:           prometheus-port
 version:        0.1.0.0
@@ -35,7 +35,7 @@ library
       Paths_prometheus_port
   hs-source-dirs:
       src
-  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
+  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
   ghc-options: -O2 -Wall -Werror -fno-warn-partial-type-signatures -fconstraint-solver-iterations=0 -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-unused-top-binds -fno-warn-deprecations -fno-warn-orphans
   build-depends:
       async
@@ -60,7 +60,7 @@ test-suite spec
       Paths_prometheus_port
   hs-source-dirs:
       test
-  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MonadFailDesugaring MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
+  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
   ghc-options: -threaded -O2 -Wno-unused-local-binds -Wno-unused-matches
   build-depends:
       HUnit

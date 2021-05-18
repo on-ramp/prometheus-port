@@ -46,4 +46,4 @@ main = do
     withLabel ("left", "right") (tvSummary reg) (`observe` 3.8)
     tCounter reg .+. 1
     tCounter reg .+. 2
-    (respond $ responseLBS status200 [] "Hello World")
+    respond $ responseLBS status200 [] "Hello World"

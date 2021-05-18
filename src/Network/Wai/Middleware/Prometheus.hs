@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveAnyClass #-}
-
 module Network.Wai.Middleware.Prometheus
   ( prometheus
   , prometheusHandlerValue
@@ -16,6 +14,7 @@ import           Prometheus.Internal.Pure.Base
 import           Prometheus.Primitive
 import           Prometheus.Vector
 import           Protolude
+import           Protolude.Conv
 
 data HttpMetrics f =
   HttpMetrics
@@ -85,14 +84,14 @@ instrumentHandlerValue f metric app req respond = do
     respond res
 
 currentTimeInMilliseconds :: IO Double
-currentTimeInMilliseconds = (fromInteger . round . (* 1000)) <$> getPOSIXTime
+currentTimeInMilliseconds = fromInteger . round . (* 1000) <$> getPOSIXTime
 
 observeLatency ::
      (LByteString, LByteString, LByteString)
   -> Vector3 Histogram
   -> Double
   -> IO ()
-observeLatency tags vc latency = withLabel tags vc (flip observe latency)
+observeLatency tags vc latency = withLabel tags vc (`observe` latency)
 
 incrementCounter ::
      (LByteString, LByteString, LByteString) -> Vector3 Counter -> IO ()
@@ -103,4 +102,4 @@ prometheus = prometheusHandlerValue (toSL . Wai.rawPathInfo)
 
 prometheusHandlerValue ::
      (Wai.Request -> Text) -> HttpMetrics Identity -> Wai.Middleware
-prometheusHandlerValue f metrics app = instrumentHandlerValue f metrics app
+prometheusHandlerValue = instrumentHandlerValue

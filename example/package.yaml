@@ -33,7 +33,6 @@ default-extensions:
   - GADTs
   - GeneralizedNewtypeDeriving
   - LambdaCase
-  - MonadFailDesugaring
   - MultiParamTypeClasses
   - MultiWayIf
   - NoImplicitPrelude

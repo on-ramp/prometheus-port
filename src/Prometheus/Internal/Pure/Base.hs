@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -9,6 +8,12 @@ module Prometheus.Internal.Pure.Base where
 import Data.Default
 import qualified Data.Map as Map
 import Protolude
+
+instance ConvertText [Char] LByteString where
+  toS = toUtf8Lazy
+
+instance ConvertText Text LByteString where
+  toS = toUtf8Lazy
 
 --  Data Structures
 

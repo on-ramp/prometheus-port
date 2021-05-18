@@ -21,9 +21,9 @@ import           Protolude
 
 import           Data.Default
 
-
 -- | >>> def :: [Quantile]
---   [(0.5, 0.05), (0.9, 0.01), (0.99, 0.001)]
+-- WAS  [(0.5, 0.05), (0.9, 0.01), (0.99, 0.001)]
+-- NOW [(0.5,5.0e-2),(0.9,1.0e-2),(0.99,1.0e-3)]
 type Quantile = (Double, Double)
 
 instance {-# OVERLAPS #-} Default [Quantile] where
