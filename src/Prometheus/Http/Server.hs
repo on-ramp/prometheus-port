@@ -6,6 +6,8 @@ module Prometheus.Http.Server
   , serveMetricsM
   , serveApp
   , serveAppWithMetrics
+  , serveAppSettings
+  , serveAppSettingsWithMetrics
   , module Data.List.HList
   , AllExportable
   ) where
@@ -14,7 +16,7 @@ import           Control.Concurrent.Async
 import           Data.List.HList
 import           Network.HTTP.Types                (hContentType, status404)
 import           Network.Wai                       (Application, responseLBS)
-import           Network.Wai.Handler.Warp          (Port, run)
+import           Network.Wai.Handler.Warp          (Port, run, runSettings, Settings, setPort, defaultSettings)
 import           Network.Wai.Middleware.Prometheus
 import           Prometheus.Http.Internal
 import           Prometheus.Internal.Base
@@ -37,6 +39,17 @@ serveMetricsM :: AllExportable f => Port -> HList f -> IO ()
 serveMetricsM port appM =
   serveMetrics' port (Just appM)
 
+serveAppSettings ::
+     Text -- ^ Component name
+  -> Port -- ^ Metric Serve port
+  -> Maybe Tags
+  -> Settings -- ^ Http Settings
+  -> Application
+  -> IO ()
+serveAppSettings component port maybeTags settingsApp app = do
+  noAppMetric <- genericRegister (NoMetric none)
+  serveAppSettingsWithMetrics component port noAppMetric maybeTags settingsApp app
+
 serveApp ::
      Text -- ^ Component name
   -> Port -- ^ Metric Serve port
@@ -44,9 +57,9 @@ serveApp ::
   -> Port -- ^ Http App Port
   -> Application
   -> IO ()
-serveApp component port maybeTags portApp app = do
-  noAppMetric <- genericRegister (NoMetric none)
-  serveAppWithMetrics component port noAppMetric maybeTags portApp app
+serveApp component port maybeTags portApp app =
+  let settings = setPort portApp defaultSettings
+  in serveAppSettings component port maybeTags settings app
 
 serveAppWithMetrics ::
      GenericExportable f
@@ -57,10 +70,23 @@ serveAppWithMetrics ::
   -> Port
   -> Application
   -> IO ()
-serveAppWithMetrics component port metrics maybeTags portApp app = do
+serveAppWithMetrics component port metrics maybeTags portApp app =
+  let settings = setPort portApp defaultSettings
+  in serveAppSettingsWithMetrics component port metrics maybeTags settings app
+
+serveAppSettingsWithMetrics ::
+     GenericExportable f
+  => Text
+  -> Port
+  -> f Identity
+  -> Maybe Tags
+  -> Settings
+  -> Application
+  -> IO ()
+serveAppSettingsWithMetrics component port metrics maybeTags settingsApp app = do
   httpM <- genericRegister (httpMetrics component maybeTags)
   race_
-    (run portApp (prometheus httpM app))
+    (runSettings settingsApp (prometheus httpM app))
     (serveMetrics' port (Just $ (metrics :# httpM :# HNil)))
 
 response404 :: Application
