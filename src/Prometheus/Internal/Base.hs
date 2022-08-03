@@ -1,176 +1,168 @@
-{-# LANGUAGE ConstraintKinds      #-}
-{-# LANGUAGE PolyKinds            #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ConstraintKinds
+           , FlexibleContexts
+           , FlexibleInstances
+           , FunctionalDependencies
+           , OverloadedStrings
+           , PolyKinds
+           , TypeFamilies
+           , TypeFamilyDependencies
+           , TypeOperators
+           , UndecidableInstances #-}
 
 module Prometheus.Internal.Base where
 
+import           Prometheus.Internal.Pure.Base (Sample (..))
+
 import           Control.Concurrent.STM.TVar
-import qualified Data.ByteString.Lazy          as BL
-import           Data.Text                     as T
-                                                ( replace )
-import           Prometheus.Internal.Pure.Base
-import           Protolude
-import           Protolude.Conv as C
+import qualified Data.ByteString.Lazy.Char8 as BSLC
+import           Data.Functor.Identity
+import           Data.Kind
+import qualified Data.Text as Text
+import           GHC.Generics
+
+
+
+type Tags = [(BSLC.ByteString, BSLC.ByteString)]
 
 -- Basic description of metrics
 data Info = Info
-  { iName           :: LByteString -- ^ Name of the metric
-  , iHelp           :: LByteString -- ^ Additional commentary
-  , iAdditionalTags :: [(LByteString, LByteString)]
-  }
-  deriving Show
+              { iName :: BSLC.ByteString -- ^ Name of the metric
+              , iHelp :: BSLC.ByteString -- ^ Additional commentary
+              , iTags :: Tags            -- ^ Additional tags
+              }
+            deriving Show
 
-infoM :: LByteString -> LByteString -> Info
-infoM name help = Info name help []
+mkInfo :: BSLC.ByteString -> BSLC.ByteString -> Info
+mkInfo name help = Info name help []
 
---  A wrapper that duplicates all of additional information stored by 'Impure' into a separate
---  argument. It's full duplication only because Vectors need to convert '_mUninitialized'
---  from Identity to (Map l) and that requires constructing another 'Impure'.
-data Metric' o f s = Metric'
-  { _mOptional      :: (Info, o)
-  , _mUninitialized :: TVar (Pure f s) -> Impure o f s
-  }
+
 
 --  A core datatype of this module, takes an existing 'Pure' implementation of a metric
 --  and moves it in a separate 'TVar' with additional information on the side.
-data Impure o f s = Impure (Info, o) (TVar (Pure f s))
+data Impure d f s = Impure d Info (f s)
 
---  'Glue' + 'Metric' serve as a way to hide pointless dependencies inside the library.
-type family Glue (a :: *)
 
-newtype Metric a =
-  Metric
-    { unMetric :: Glue a
-    }
 
-class Constructible o s where
-  construct :: o -> Metric s
+type family Rank (s :: Type) :: Type -> Type
 
---  Initialization of metrics.
---
---   For 'Generic' data structures use 'genericRegister'.
-class Registrable s where
+type family Purify (s :: Type) :: Type
+
+type family Extra (s :: Type) :: Type -> Type
+
+newtype Metric m = Metric { unMetric :: Impure (Extra m (Purify m)) (Rank m) (Purify m) }
+
+extraTags :: Tags -> Metric s -> Metric s
+extraTags t' (Metric (Impure d (Info n h t) s)) = Metric $ Impure d (Info n h $ t <> t') s
+
+
+
+class Register s where
   register :: Metric s -> IO s
 
---  Retrieval of what Metrics store inside.
-class Extractable e s where
+
+class Extract s e | s -> e where
   extract :: s -> IO e
 
---  Packing metrics into 'Template's.
---
---   Note: I tried to put 'genericExport' as a default Signature, but then it started
---         declining the 'Generic' instance with "No Exportable" class error :/
-class Exportable s where
+class Export s where
   export :: s -> IO Template
 
-type GenericRegistrable f
-  = ( Generic (f Metric)
-    , Generic (f Identity)
-    , GRegistrable (Rep (f Metric)) (Rep (f Identity))
-    )
 
-genericRegister :: GenericRegistrable f => f Metric -> IO (f Identity)
+
+genericRegister
+  :: ( Generic (f Metric)
+     , Generic (f Identity)
+     , GRegister (Rep (f Metric)) (Rep (f Identity))
+     )
+  => f Metric -> IO (f Identity)
 genericRegister = fmap to . gregister . from
 
---  A 'Generic' 'register' wrapper. The types of `register` and `gregister` are
---   drastically different, so I don't think it's possible to make a default
---   signature out of `genericRegister`.
-class GRegistrable i o where
+class GRegister i o where
   gregister :: i a -> IO (o a)
 
-instance (GRegistrable i o, GRegistrable j p) =>
-         GRegistrable (i :+: j) (o :+: p) where
+instance (GRegister i o, GRegister j p) =>
+         GRegister (i :+: j) (o :+: p) where
   gregister (L1 l) = L1 <$> gregister l
   gregister (R1 r) = R1 <$> gregister r
 
-instance (GRegistrable i o, GRegistrable j p) =>
-         GRegistrable (i :*: j) (o :*: p) where
+instance (GRegister i o, GRegister j p) =>
+         GRegister (i :*: j) (o :*: p) where
   gregister (l :*: r) = (:*:) <$> gregister l <*> gregister r
 
-instance GRegistrable i o => GRegistrable (M1 k m i) (M1 l n o) where
+instance GRegister i o => GRegister (M1 k m i) (M1 l n o) where
   gregister (M1 m) = M1 <$> gregister m
 
-instance Registrable s => GRegistrable (K1 a (Metric s)) (K1 a s) where
+instance Register s => GRegister (K1 a (Metric s)) (K1 a s) where
   gregister (K1 k) = K1 <$> register k
 
---  A 'Generic' 'export' wrapper.
-class GExportable i where
+
+
+class GExport i where
   gexport :: i a -> IO [Template]
 
-instance (GExportable i, GExportable j) => GExportable (i :+: j) where
+instance (GExport i, GExport j) => GExport (i :+: j) where
   gexport (L1 l) = gexport l
   gexport (R1 r) = gexport r
 
-instance (GExportable i, GExportable j) => GExportable (i :*: j) where
+instance (GExport i, GExport j) => GExport (i :*: j) where
   gexport (l :*: r) = (<>) <$> gexport l <*> gexport r
 
-instance GExportable i => GExportable (M1 k m i) where
+instance GExport i => GExport (M1 k m i) where
   gexport (M1 m) = gexport m
 
-instance Exportable s => GExportable (K1 a s) where
-  gexport (K1 k) = (: []) <$> export k
+instance Export s => GExport (K1 a s) where
+  gexport (K1 k) = pure <$> export k
 
-type GenericExportable f
-  = (Generic (f Identity), GExportable (Rep (f Identity)))
+genericExport :: (Generic (f Identity), GExport (Rep (f Identity))) => f Identity -> IO [Template]
+genericExport = gexport . from
 
-genericExport' :: GenericExportable f => f Identity -> IO [Template]
-genericExport' = gexport . from
 
---  Convert any 'Generic' metric datatype into a Prometheus-compatible 'LByteString'
-genericExport :: GenericExportable f => f Identity -> IO LByteString
-genericExport = fmap (mconcat . fmap template) . genericExport'
 
-type family AllExportable (ts :: [(* -> *) -> *]) :: Constraint where
-  AllExportable '[] = ()
-  AllExportable (x ': ts) = (GenericExportable x, AllExportable ts)
-
-class Incrementable s where
+class Increment s where
   increment :: s -> IO ()
-  (.+.) :: s -> Double -> IO ()
+  increment = plus 1
 
-class Decrementable s where
+  plus :: Double -> s -> IO ()
+
+class Decrement s where
   decrement :: s -> IO ()
-  (.-.) :: s -> Double -> IO ()
+  decrement = minus 1
 
-class Settable s where
-  (.=.) :: s -> Double -> IO ()
+  minus :: Double -> s -> IO ()
 
-class Observable s where
-  observe :: s -> Double -> IO ()
+class Set s where
+  set :: Double -> s -> IO ()
 
-data Template
-  = Template Info LByteString [Sample]
-  | Empty
-  deriving (Show)
+class Observe s where
+  observe :: Double -> s -> IO ()
 
-toTemplate :: Info -> LByteString -> PureExportSample -> Template
-toTemplate _ _ NoSample               = Empty
-toTemplate i b (ExportSample samples) = Template i b samples
 
-escape :: LByteString -> LByteString
-escape =
-  C.toS
-    . T.replace "\n" "\\n"
-    . T.replace "\"" "\\\""
-    . T.replace "\\" "\\\\"
-    . C.toS
 
---  Class of objects that can be transformed into Prometheus metrics.
---
---   This doesn't really have to be a class ¯\_(ツ)_/¯
-template :: Template -> LByteString
-template Empty = ""
-template (Template (Info name help additionalTags) metric samples) =
-  mconcat
-    $  ["# HELP ", name, " ", help, "\n", "# TYPE ", name, " ", metric, "\n"]
-    <> fmap fromSamples samples
+data Template = Template Info BSLC.ByteString [Sample]
+                deriving (Show)
+
+escape :: BSLC.ByteString -> BSLC.ByteString
+escape bs =
+  let (bef, aft) = BSLC.break (== '/') bs
+  in case BSLC.uncons aft of
+       Nothing      -> bef
+       Just (b, bs) -> "\\" <> escape bs
+
+template :: Template -> BSLC.ByteString
+template (Template (Info name help extra) metric samples)
+  | null samples = mempty
+  | otherwise    = mconcat $ [ "# HELP ", name, " ", help  , "\n"
+                             , "# TYPE ", name, " ", metric, "\n"
+                             ]
+                               <> fmap fromSamples samples
  where
-  fromSamples (DoubleSample suffix labels value) = mconcat
-    [name, suffix, fromLabels (labels ++ additionalTags), " ", show value, "\n"]
-  fromSamples (IntSample suffix labels value) = mconcat
-    [name, suffix, fromLabels (labels ++ additionalTags), " ", show value, "\n"]
-  fromLabels [] = ""
-  fromLabels labels =
-    let expand (k, a) = mconcat [k, "=\"", escape a, "\""]
-    in  mconcat ["{", BL.intercalate ", " $ fmap expand labels, "}"]
+  fromSamples (DoubleSample suffix labels value) =
+    mconcat
+      [name, suffix, fromLabels $ labels <> extra, " ", BSLC.pack $ show value, "\n"]
+
+  fromSamples (IntSample suffix labels value) =
+    mconcat
+      [name, suffix, fromLabels $ labels <> extra, " ", BSLC.pack $ show value, "\n"]
+
+  fromLabels []     = ""
+  fromLabels labels = let expand (k, a) = mconcat [k, "=\"", escape a, "\""]
+                      in mconcat ["{", BSLC.intercalate ", " $ fmap expand labels, "}"]

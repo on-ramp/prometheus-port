@@ -1,33 +1,36 @@
 version: 2.1
 
-defaults: &defaults
-  docker:
-   - image: coinweb/base-stack:lts-14.5@sha256:4521e5abf6bc8b965a4dc9c61ee6b9f89e2cc69cbe6a8c04989da901cc6c105e
-#
-
 jobs:
   build:
-    <<: *defaults
+    docker:
+      - image: haskell:8.10.7-slim
     steps:
-      - checkout
-      - restore_cache:
-          # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
-          name: Restore Cached Dependencies
-          keys:
-            - stack-cache-{{ checksum "stack.yaml.lock" }}-v2
       - run:
-          name: Resolve/Update Dependencies
-          command: stack --no-terminal setup
+          name: Update
+          command: apt-get update && apt-get install -y openssh-client git
+
+      - checkout
+
+      - restore_cache:
+          name: Restore dependencies
+          keys:
+            - cache-8.10.7-{{ checksum "prometheus-typed.cabal" }}
+
+      - run:
+          name: Update dependencies
+          command: cabal new-update && cabal new-install --lib
+
+      - run:
+          name: Build
+          command: cabal new-build --enable-documentation --enable-tests
+
+      - save_cache:
+          name: Cache dependencies
+          key: cache-8.10.7-{{ checksum "prometheus-typed.cabal" }}
+          paths:
+            - "/root/.cabal"
+            - "dist-newstyle"
+
       - run:
           name: Run tests
-          command: stack --no-terminal test
-      - run:
-          name: Install executable
-          command: stack --no-terminal install
-      - save_cache:
-          name: Cache Dependencies
-          key: stack-cache-{{ checksum "stack.yaml.lock" }}-v2
-          paths:
-            - "/root/.stack"
-            - ".stack-work"
-
+          command: cabal new-test -- --enable-documentation

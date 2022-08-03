@@ -1,47 +1,36 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving
+           , MultiParamTypeClasses
+           , OverloadedStrings #-}
+
 {-# OPTIONS_HADDOCK hide #-}
 
 module Prometheus.Internal.Pure.Counter where
 
 import           Prometheus.Internal.Pure.Base
 
-import           Protolude
+import           Control.DeepSeq
+import           Data.String
+import           Data.Functor.Identity
 
-import           Data.Default
 
 
-
--- | A pure Counter is merely a wrapper around 'Double' with an instance of 'PureIncrementable'
 newtype Counter = Counter { unCounter :: Double }
-                  deriving Default
+                  deriving NFData
 
-mkCounter :: Double -> Counter
-mkCounter = Counter
+instance Construct () Counter where
+  construct () = Counter 0
 
-pureUnsafeSet :: Pure Identity Counter -> Double -> Pure Identity Counter
-pureUnsafeSet _ = Pure . Counter
+instance Name Counter where
+  name _ = "counter"
 
+instance Extract Counter Double where
+  extract = unCounter
 
+instance Export Counter where
+  export = pure . DoubleSample "" [] . unCounter
 
-instance PureNamed Counter where
-  pureName _ = "counter"
+instance Increment Counter where
+  plus a (Counter c) = Counter $ max c (c + a)
 
-instance PureConstructible () Counter where
-  pureConstruct _ = Counter 0
-
-type instance Extract Counter = Double
-
-instance Extract Counter ~ e => PureExtractable e Counter where
-  pureExtract = unCounter
-
-instance PureExportable Counter where
-  pureExport (Counter v) = ExportSample [ DoubleSample "" [] v ]
-
-instance PureIncrementable Counter where
-  pureIncrement = Counter . (+ 1) . unCounter
-  (+.+)     a d = Counter . (+ d) $ unCounter a
-
-instance PureSettable Counter where
-  (=.=) (Counter a) d =
-    if d > a
-      then Counter d
-      else Counter a
+instance Set Counter where
+  set a (Counter c) = Counter $ max c a

@@ -1,44 +1,38 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving
+           , MultiParamTypeClasses
+           , OverloadedStrings #-}
+
 {-# OPTIONS_HADDOCK hide #-}
 
 module Prometheus.Internal.Pure.Gauge where
 
 import           Prometheus.Internal.Pure.Base
 
-import           Protolude
-
-import           Data.Default
-
+import           Control.DeepSeq
+import           Data.String
 
 
--- | A pure Gauge is merely a wrapper around 'Double' with instances of 'PureIncrementable'
---   and 'PureShiftable'
+
 newtype Gauge = Gauge { unGauge :: Double }
-                deriving Default
+                deriving NFData
 
-mkGauge :: Double -> Gauge
-mkGauge = Gauge
+instance Construct () Gauge where
+  construct () = Gauge 0
 
-instance PureNamed Gauge where
-  pureName _ = "gauge"
+instance Name Gauge where
+  name _ = "gauge"
 
-instance PureConstructible () Gauge where
-  pureConstruct () = Gauge 0
+instance Extract Gauge Double where
+  extract = unGauge
 
-type instance Extract Gauge = Double
+instance Export Gauge where
+  export = pure . DoubleSample "" [] . unGauge
 
-instance Extract Gauge ~ e => PureExtractable e Gauge where
-  pureExtract = unGauge
+instance Increment Gauge where
+  plus a = Gauge . (+) a . unGauge
 
-instance PureExportable Gauge where
-  pureExport (Gauge v) = ExportSample [ DoubleSample "" [] v ]
+instance Decrement Gauge where
+  minus a = Gauge . subtract a . unGauge
 
-instance PureIncrementable Gauge where
-  pureIncrement = Gauge . (+ 1) . unGauge
-  (+.+)     a d = Gauge . (+ d) $ unGauge a
-
-instance PureDecrementable Gauge where
-  pureDecrement = Gauge . (1 `subtract`) . unGauge
-  (-.-)     a d = Gauge . (d `subtract`) $ unGauge a
-
-instance PureSettable Gauge where
-  (=.=)     _   = Gauge
+instance Set Gauge where
+  set = const . Gauge

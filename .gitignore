@@ -1,5 +1,2 @@
 .stack-work/
-prometheus-typehell.cabal
-*~
-tags
-.DS_Store
+dist-newstyle/
