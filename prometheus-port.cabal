@@ -8,8 +8,7 @@ build-type:     Simple
 extra-source-files: README.md
 
 library
-  exposed-modules: Network.Wai.Middleware.Prometheus
-                   Prometheus
+  exposed-modules: Prometheus
                    Prometheus.GHC
                    Prometheus.Internal
                    Prometheus.Internal.Pure
@@ -32,10 +31,8 @@ library
                , bytestring
                , containers
                , deepseq
-               , http-types
                , stm
                , text
-               , wai
 
   default-language: Haskell2010
 
@@ -46,7 +43,7 @@ test-suite consistency
 
   hs-source-dirs: test/consistency
 
-  ghc-options: -O1
+  ghc-options: -threaded -O1
 
   build-depends: base >=4.7 && <5
                , bytestring

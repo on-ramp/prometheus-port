@@ -3,7 +3,6 @@
            , FlexibleInstances
            , FunctionalDependencies
            , OverloadedStrings
-           , PatternSynonyms
            , PolyKinds
            , TypeFamilies
            , TypeFamilyDependencies
@@ -26,16 +25,15 @@ import           GHC.Generics
 type Tags = [(BSLC.ByteString, BSLC.ByteString)]
 
 -- Basic description of metrics
-data Info = MkInfo
+data Info = Info
               { iName :: BSLC.ByteString -- ^ Name of the metric
               , iHelp :: BSLC.ByteString -- ^ Additional commentary
               , iTags :: Tags            -- ^ Additional tags
               }
+            deriving Show
 
-pattern Info :: BSLC.ByteString -> BSLC.ByteString -> Info
-pattern Info name help <- MkInfo name help _
-  where
-    Info name help = MkInfo name help []
+mkInfo :: BSLC.ByteString -> BSLC.ByteString -> Info
+mkInfo name help = Info name help []
 
 
 
@@ -53,43 +51,14 @@ type family Extra (s :: Type) :: Type -> Type
 
 newtype Metric m = Metric { unMetric :: Impure (Extra m (Purify m)) (Rank m) (Purify m) }
 
-
-
-tag :: Tags -> Metric s -> Metric s
-tag t' (Metric (Impure d (MkInfo n h t) s)) = Metric $ Impure d (MkInfo n h $ t <> t') s
-
-genericTag
-  :: ( Generic (f Metric)
-     , GTag (Rep (f Metric))
-     )
-  => Tags -> f Metric -> f Metric
-genericTag t = to . gtag t . from
-
-class GTag i where
-  gtag :: Tags -> i a -> i a
-
-instance GTag U1 where
-  gtag _ U1 = U1
-
-instance (GTag i, GTag j) => GTag (i :*: j) where
-  gtag t (i :*: j) = gtag t i :*: gtag t j
-
-instance GTag i => GTag (M1 k m i) where
-  gtag t (M1 m) = M1 $ gtag t m
-
-instance GTag (K1 a (Metric s)) where
-  gtag t (K1 k) = K1 $ tag t k
-
-instance ( Generic (f Metric)
-         , GTag (Rep (f Metric))
-         )
-        => GTag (K1 a (f Metric)) where
-  gtag t (K1 k) = K1 . to . gtag t $ from k
+extraTags :: Tags -> Metric s -> Metric s
+extraTags t' (Metric (Impure d (Info n h t) s)) = Metric $ Impure d (Info n h $ t <> t') s
 
 
 
 class Register s where
   register :: Metric s -> IO s
+
 
 class Extract s e | s -> e where
   extract :: s -> IO e
@@ -110,8 +79,10 @@ genericRegister = fmap to . gregister . from
 class GRegister i o where
   gregister :: i a -> IO (o a)
 
-instance GRegister U1 U1 where
-  gregister U1 = pure U1
+instance (GRegister i o, GRegister j p) =>
+         GRegister (i :+: j) (o :+: p) where
+  gregister (L1 l) = L1 <$> gregister l
+  gregister (R1 r) = R1 <$> gregister r
 
 instance (GRegister i o, GRegister j p) =>
          GRegister (i :*: j) (o :*: p) where
@@ -123,27 +94,14 @@ instance GRegister i o => GRegister (M1 k m i) (M1 l n o) where
 instance Register s => GRegister (K1 a (Metric s)) (K1 a s) where
   gregister (K1 k) = K1 <$> register k
 
-instance ( Generic (f Metric)
-         , Generic (f Identity)
-         , GRegister (Rep (f Metric)) (Rep (f Identity))
-         )
-        => GRegister (K1 a (f Metric)) (K1 a (f Identity)) where
-  gregister (K1 k) = K1 <$> genericRegister k
 
-
-
-genericExport
-  :: ( Generic (f Identity)
-     , GExport (Rep (f Identity))
-     )
-  => f Identity -> IO [Template]
-genericExport = gexport . from
 
 class GExport i where
   gexport :: i a -> IO [Template]
 
-instance GExport U1 where
-  gexport U1 = pure []
+instance (GExport i, GExport j) => GExport (i :+: j) where
+  gexport (L1 l) = gexport l
+  gexport (R1 r) = gexport r
 
 instance (GExport i, GExport j) => GExport (i :*: j) where
   gexport (l :*: r) = (<>) <$> gexport l <*> gexport r
@@ -151,14 +109,11 @@ instance (GExport i, GExport j) => GExport (i :*: j) where
 instance GExport i => GExport (M1 k m i) where
   gexport (M1 m) = gexport m
 
-instance {-# OVERLAPPABLE #-} Export s => GExport (K1 a s) where
+instance Export s => GExport (K1 a s) where
   gexport (K1 k) = pure <$> export k
 
-instance ( Generic (f Identity)
-         , GExport (Rep (f Identity))
-         )
-        => GExport (K1 a (f Identity)) where
-  gexport (K1 k) = gexport $ from k
+genericExport :: (Generic (f Identity), GExport (Rep (f Identity))) => f Identity -> IO [Template]
+genericExport = gexport . from
 
 
 
@@ -183,6 +138,7 @@ class Observe s where
 
 
 data Template = Template Info BSLC.ByteString [Sample]
+                deriving (Show)
 
 escape :: BSLC.ByteString -> BSLC.ByteString
 escape bs =
@@ -192,7 +148,7 @@ escape bs =
        Just (b, bs) -> "\\" <> escape bs
 
 template :: Template -> BSLC.ByteString
-template (Template (MkInfo name help extra) metric samples)
+template (Template (Info name help extra) metric samples)
   | null samples = mempty
   | otherwise    = mconcat $ [ "# HELP ", name, " ", help  , "\n"
                              , "# TYPE ", name, " ", metric, "\n"

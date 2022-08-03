@@ -24,9 +24,6 @@ module Prometheus.Internal
   , Label6
   , Label7
     -- * Classes
-    -- ** Tag
-  , Info (..)
-  , GTag (..)
     -- ** Register
   , GRegister (..)
     -- ** Export

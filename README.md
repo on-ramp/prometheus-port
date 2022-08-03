@@ -23,10 +23,10 @@ Therefore...
 
 ```haskell
 -- Create metrics
-cntr   <- register . counter   $ Info "counter"   "counter_help"
-gg     <- register . gauge     $ Info "gauge"     "gauge_help"
-hstgrm <- register . histogram ( Info "histogram" "histogram_help" ) defBuckets
-smmr   <- register . summary   ( Info "summary"   "summary_help"   ) defQuantiles
+cntr   <- register . counter   $ mkInfo "counter"   "counter_help"
+gg     <- register . gauge     $ mkInfo "gauge"     "gauge_help"
+hstgrm <- register . histogram ( mkInfo "histogram" "histogram_help" ) defBuckets
+smmr   <- register . summary   ( mkInfo "summary"   "summary_help"   ) defQuantiles
 
 -- Collect some data with the metrics
 increment cntr
@@ -48,7 +48,7 @@ ggExported <- export gg
 
 
 -- In case of vectors everything is the same, but with additional functions
-vcntr <- register . vector "label" . counter $ Info "counter"   "counter_help"
+vcntr <- register . vector "label" . counter $ mkInfo "counter"   "counter_help"
 
 withLabel "this" vcntr increment
 withlabel "this" vcntr $ plus 5
@@ -83,3 +83,15 @@ withLabel "test" (that registeredThese) $ observe 6.9
 
 -- Export metrics
 bytestr <- genericExport registeredThese
+```
+
+## Examples
+
+There are a couple of example on how to plug this machinery in real applications under [example](./example) directory.
+
+
+### Non HTTP Application
+[Simple Example](./example/simple/Main.hs) that provides how to plug this in a non HTTP Application.
+
+### HTTP/Wai Application
+[Server Example](./example/server/Main.hs) that provides how to plug this in a Wai HTTP Application. In this case this middleware is going to give you for free metrics on latency and count status code for your HTTP endpoints
