@@ -59,7 +59,6 @@ extraTags t' (Metric (Impure d (Info n h t) s)) = Metric $ Impure d (Info n h $ 
 class Register s where
   register :: Metric s -> IO s
 
-
 class Extract s e | s -> e where
   extract :: s -> IO e
 
@@ -94,7 +93,21 @@ instance GRegister i o => GRegister (M1 k m i) (M1 l n o) where
 instance Register s => GRegister (K1 a (Metric s)) (K1 a s) where
   gregister (K1 k) = K1 <$> register k
 
+instance ( Generic (f Metric)
+         , Generic (f Identity)
+         , GRegister (Rep (f Metric)) (Rep (f Identity))
+         )
+        => GRegister (K1 a (f Metric)) (K1 a (f Identity)) where
+  gregister (K1 k) = K1 <$> genericRegister k
 
+
+
+genericExport
+  :: ( Generic (f Identity)
+     , GExport (Rep (f Identity))
+     )
+  => f Identity -> IO [Template]
+genericExport = gexport . from
 
 class GExport i where
   gexport :: i a -> IO [Template]
@@ -112,8 +125,11 @@ instance GExport i => GExport (M1 k m i) where
 instance Export s => GExport (K1 a s) where
   gexport (K1 k) = pure <$> export k
 
-genericExport :: (Generic (f Identity), GExport (Rep (f Identity))) => f Identity -> IO [Template]
-genericExport = gexport . from
+instance ( Generic (f Identity)
+         , GExport (Rep (f Identity))
+         )
+        => GExport (K1 a (f Identity)) where
+  gexport (K1 k) = genericExport k
 
 
 
