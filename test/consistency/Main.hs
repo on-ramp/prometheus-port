@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric
            , OverloadedStrings #-}
 
-module Consistency where
+module Main where
 
 import           Prometheus
 import           Type.No
