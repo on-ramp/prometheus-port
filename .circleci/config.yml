@@ -14,7 +14,7 @@ jobs:
       - restore_cache:
           name: Restore dependencies
           keys:
-            - cache-8.10.7-{{ checksum "prometheus-typed.cabal" }}
+            - cache-8.10.7-{{ checksum "prometheus-port.cabal" }}
 
       - run:
           name: Update dependencies
@@ -22,15 +22,15 @@ jobs:
 
       - run:
           name: Build
-          command: cabal new-build --enable-documentation --enable-tests
+          command: cabal new-build --enable-tests
 
       - save_cache:
           name: Cache dependencies
-          key: cache-8.10.7-{{ checksum "prometheus-typed.cabal" }}
+          key: cache-8.10.7-{{ checksum "prometheus-port.cabal" }}
           paths:
             - "/root/.cabal"
             - "dist-newstyle"
 
       - run:
           name: Run tests
-          command: cabal new-test -- --enable-documentation
+          command: cabal new-test

@@ -32,8 +32,13 @@ httpMetrics component =
     , hmStatus  = vector ("handler", "method", "status_code") $ counter infoC
     }
   where
-    infoL = Info (component <> "_http_request_duration_milliseconds") "The HTTP request latencies in milliseconds."
-    infoC = Info (component <> "_http_status") "The HTTP respond status code count for each request."
+    infoL = mkInfo
+              (component <> "_http_request_duration_milliseconds")
+              "The HTTP request latencies in milliseconds."
+
+    infoC = mkInfo
+              (component <> "_http_status")
+              "The HTTP respond status code count for each request."
 
     buckets = [ 0, 0.2, 0.4, 0.5, 0.7, 1, 10, 50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000 ]
 
