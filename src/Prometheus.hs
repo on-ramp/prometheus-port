@@ -2,10 +2,10 @@
 
 module Prometheus
   ( -- * Info
-    Info (..)
-  , mkInfo
+    Info (Info)
   , Tags
-  , extraTags
+  , tag
+  , genericTag
     -- * Counter
   , Counter
   , counter
