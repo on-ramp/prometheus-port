@@ -47,10 +47,10 @@ data Test f = Test
 test :: Test Metric
 test =
   Test
-    { tCounter   = counter  $ mkInfo "tCounter"   "tCounterHelp"
-    , tGauge     = gauge    $ mkInfo "tGauge"     "tGaugeHelp"
-    , tHistogram = histogram (mkInfo "tHistogram" "tHistogramHelp") defBuckets
-    , tSummary   = summary   (mkInfo "tSummary"   "tSummaryHelp")   defQuantiles
+    { tCounter   = counter  $ Info "tCounter"   "tCounterHelp"
+    , tGauge     = gauge    $ Info "tGauge"     "tGaugeHelp"
+    , tHistogram = histogram (Info "tHistogram" "tHistogramHelp") defBuckets
+    , tSummary   = summary   (Info "tSummary"   "tSummaryHelp")   defQuantiles
     }
 
 
@@ -64,8 +64,8 @@ data TestVec f = TestVec
 testVec :: TestVec Metric
 testVec =
   TestVec
-    { tvCounter = vector "this" . counter $ mkInfo "tvCounter" "tvCounterHelp"
-    , tvSummary = vector ("one", "two") $ summary (mkInfo "tvSummary" "tvSummaryHelp") defQuantiles
+    { tvCounter = vector "this" . counter $ Info "tvCounter" "tvCounterHelp"
+    , tvSummary = vector ("one", "two") $ summary (Info "tvSummary" "tvSummaryHelp") defQuantiles
     }
 
 
