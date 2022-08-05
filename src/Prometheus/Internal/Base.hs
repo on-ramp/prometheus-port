@@ -80,8 +80,11 @@ instance GTag i => GTag (M1 k m i) where
 instance GTag (K1 a (Metric s)) where
   gtag t (K1 k) = K1 $ tag t k
 
-instance GTag f => GTag (K1 a (f Metric)) where
-  gtag t (K1 k) = K1 $ gtag t k
+instance ( Generic (f Metric)
+         , GTag (Rep (f Metric))
+         )
+        => GTag (K1 a (f Metric)) where
+  gtag t (K1 k) = K1 . to . gtag t $ from k
 
 
 
@@ -148,11 +151,14 @@ instance (GExport i, GExport j) => GExport (i :*: j) where
 instance GExport i => GExport (M1 k m i) where
   gexport (M1 m) = gexport m
 
-instance Export s => GExport (K1 a s) where
+instance {-# OVERLAPPABLE #-} Export s => GExport (K1 a s) where
   gexport (K1 k) = pure <$> export k
 
-instance GExport f => GExport (K1 a (f Identity)) where
-  gexport (K1 k) = gexport k
+instance ( Generic (f Identity)
+         , GExport (Rep (f Identity))
+         )
+        => GExport (K1 a (f Identity)) where
+  gexport (K1 k) = gexport $ from k
 
 
 
