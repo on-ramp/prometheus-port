@@ -5,6 +5,7 @@ module Prometheus
     Info (Info)
   , Tags
   , tag
+  , GTag
   , genericTag
     -- * Counter
   , Counter
@@ -37,6 +38,7 @@ module Prometheus
     -- * Classes
     -- ** Register
   , Register (..)
+  , GRegister
   , genericRegister
   , Metric
     -- ** Extract
@@ -44,6 +46,7 @@ module Prometheus
     -- ** Export
   , Export
   , export
+  , GExport
   , genericExport
     -- ** Increment
   , Increment (..)
