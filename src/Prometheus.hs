@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts
+           , NumericUnderscores #-}
 
 module Prometheus
   ( -- * Info
@@ -56,6 +57,10 @@ module Prometheus
   , Set (..)
     -- ** Observe
   , Observe (..)
+
+    -- * Helper functions
+  , measure
+  , measureCont
   )
 where
 
@@ -68,6 +73,7 @@ import           Prometheus.Internal.Vector
 
 import qualified Data.ByteString.Lazy.Char8 as BSLC
 import           Data.Functor.Identity
+import           GHC.Clock
 import           GHC.Generics
 
 
@@ -79,3 +85,22 @@ export = fmap template . Base.export
 
 genericExport :: (Generic (f Identity), GExport (Rep (f Identity))) => f Identity -> IO BSLC.ByteString
 genericExport = fmap (foldMap template) . Base.genericExport
+
+
+
+-- | Calculates how much time an operation takes (in seconds).
+measure :: IO a -> IO (a, Double)
+measure io = do
+  start <- getMonotonicTimeNSec
+  a <- io
+  end <- getMonotonicTimeNSec
+  return (a, fromIntegral (end - start) / 1_000_000_000)
+
+-- | Same as 'measure' in continuation-passing style. Time is measured between the
+--   invocation of 'measureCont' and the evaluation of @'IO' 'Double'@.
+measureCont :: (IO Double -> IO a) -> IO a
+measureCont f = do
+  start <- getMonotonicTimeNSec
+  f $ do
+    end <- getMonotonicTimeNSec
+    return $ fromIntegral (end - start) / 1_000_000_000

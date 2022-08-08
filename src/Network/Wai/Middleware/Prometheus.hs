@@ -38,13 +38,12 @@ httpMetrics =
 prometheus
   :: HttpMetrics Identity
   -> Middleware
-prometheus metric app req respond = do
-  start <- getMonotonicTimeNSec
-  app req $ \res -> do
-    end <- getMonotonicTimeNSec
-    let path    = BSLC.fromStrict $ rawPathInfo req
-        method  = BSLC.fromStrict $ requestMethod req
-        status  = toLazyByteString . intDec . statusCode $ responseStatus res
-        latency = fromIntegral (end - start) / 1_000_000_000
-    withLabel (path, method, status) (hmDuration metric) $ observe latency
-    respond res
+prometheus metric app req respond =
+  measureCont $ \stamp ->
+    app req $ \res -> do
+      let path    = BSLC.fromStrict $ rawPathInfo req
+          method  = BSLC.fromStrict $ requestMethod req
+          status  = toLazyByteString . intDec . statusCode $ responseStatus res
+      time <- stamp
+      withLabel (path, method, status) (hmDuration metric) $ observe time
+      respond res
