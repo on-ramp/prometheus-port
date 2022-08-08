@@ -1,90 +1,99 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE FlexibleInstances
+           , MultiParamTypeClasses
+           , OverloadedStrings
+           , TypeFamilies #-}
+
 {-# OPTIONS_HADDOCK hide #-}
 
-{-|
-    The summary code is a 1-1 copy from [prometheus-client]
-    (https://hackage.haskell.org/package/prometheus-client/docs/src/Prometheus.Metric.Summary.html)
-    and should probably be rewritten one day, as this implementation seems rather weak (but
-    I never bothered to figure out how it actually works, take that >:P)
+{- | The summary code is a 1-1 copy from [prometheus-client]
+     (https://hackage.haskell.org/package/prometheus-client/docs/src/Prometheus.Metric.Summary.html)
+     and should probably be rewritten one day, as this implementation seems rather weak (but
+     I never bothered to figure out how it actually works, take that >:P)
  -}
 
-module Prometheus.Internal.Pure.Summary
-  ( -- * Summary
-    Quantile
-  , Summary (..)
-  , Estimator
-  ) where
+module Prometheus.Internal.Pure.Summary where
 
 import           Prometheus.Internal.Pure.Base
 
-import           Protolude
+import           Control.DeepSeq
+import qualified Data.ByteString.Lazy.Char8 as BSLC
+import           Data.Foldable
+import           Data.Function
+import           Data.Int
+import           Data.String
+import           GHC.Real
 
-import           Data.Default
 
--- | >>> def :: [Quantile]
--- WAS  [(0.5, 0.05), (0.9, 0.01), (0.99, 0.001)]
--- NOW [(0.5,5.0e-2),(0.9,1.0e-2),(0.99,1.0e-3)]
+
 type Quantile = (Double, Double)
 
-instance {-# OVERLAPS #-} Default [Quantile] where
-  def = [(0.5, 0.05), (0.9, 0.01), (0.99, 0.001)]
+-- | >>> defQuantiles
+-- [(0.5, 0.05), (0.9, 0.01), (0.99, 0.001)]
+defQuantiles :: [Quantile]
+defQuantiles = [(0.5, 0.05), (0.9, 0.01), (0.99, 0.001)]
 
 
 
 data Item = Item
-              { _iValue :: Double
-              , _iG     :: !Int64
-              , _iD     :: !Int64
-              } deriving Eq
+              { iValue :: Double
+              , iG     :: Int64
+              , iD     :: Int64
+              }
+            deriving Eq
 
 instance Ord Item where
-  compare = compare `on` _iValue
+  compare = compare `on` iValue
+
+instance NFData Item where
+  rnf (Item v g d) = rnf (v, g, d)
+
 
 
 -- | 'Estimator' is the underlying structure of a summary, aggregating values over time.
 data Estimator = Estimator
-                   { _eCount     :: !Int64
-                   , _eSum       :: !Double
-                   , _eQuantiles :: [Quantile]
-                   , _eItems     :: [Item]
+                   { eCount     :: Int64
+                   , eSum       :: Double
+                   , eQuantiles :: [Quantile]
+                   , eItems     :: [Item]
                    }
+
+instance NFData Estimator where
+  rnf (Estimator c s q i) = rnf (c, s, q, i)
+
+
 
 -- | A summary exposes streaming φ-quantiles (0 ≤ φ ≤ 1) of observed events over a sliding time
 --   window.
 --
 --   Note: used implementation has no notion of a time window per se, it just compresses
---         the 'Estimator' on everya observation.
+--         the 'Estimator' on every observation.
 data Summary = Summary
-                 { sCount :: !Int -- ^ Number of observations made
-                 , sDouble :: !Double -- ^ Total sum of all observations
+                 { sCount     :: Int                -- ^ Number of observations made
+                 , sDouble    :: Double             -- ^ Total sum of all observations
                  , sQuantiles :: [(Double, Double)] -- ^ [(quantile, φ-quantile)]
-                 } deriving Show
+                 }
 
+instance Name Estimator where
+  name _ = "summary"
 
+instance Construct [Quantile] Estimator where
+  construct quantiles = Estimator 0 0 quantiles []
 
-instance PureNamed Estimator where
-  pureName _ = "summary"
-
-instance PureConstructible [Quantile] Estimator where
-  pureConstruct quantiles = Estimator 0 0 quantiles []
-
-type instance Extract Estimator = Summary
-
-instance Extract Estimator ~ e => PureExtractable e Estimator where
-  pureExtract estimator' =
+instance Extract Estimator Summary where
+  extract estimator' =
     let estimator@(Estimator count esum quantiles _) = compress estimator'
         quants = fmap fst quantiles
     in Summary (fromIntegral count) esum . zip quants $ map (query estimator) quants
 
-instance PureExportable Estimator where
-  pureExport estimator =
-    let (Summary count ssum quantiles) = pureExtract estimator
-    in ExportSample (converted quantiles <> [ DoubleSample "_sum" [] ssum, IntSample "_count" [] count ])
+instance Export Estimator where
+  export estimator =
+    let Summary count ssum quantiles = extract estimator
+    in converted quantiles <> [ DoubleSample "_sum" [] ssum, IntSample "_count" [] count ]
     where
-      converted = fmap (\(k, a) -> DoubleSample "" [("quantile", show k)] a)
+      converted = fmap (\(k, a) -> DoubleSample "" [("quantile", BSLC.pack $ show k)] a)
 
-instance PureObservable Estimator where
-  pureObserve estimator value = insert value $ compress estimator
+instance Observe Estimator where
+  observe value = insert value . compress
 
 
 
@@ -98,8 +107,8 @@ insert value summaryData@(Estimator oldCount oldSum quantiles items) =
         insertItem r [x]
             -- The first two cases cover the scenario where the initial size of
             -- the list is one.
-            | r == 0 && value < _iValue x = Item value 1 0 : [x]
-            | r == 0                      = x : [Item value 1 0]
+            | r == 0 && value < iValue x = Item value 1 0 : [x]
+            | r == 0                     = x : [Item value 1 0]
             -- The last case covers the scenario where the we have walked off
             -- the end of a list with more than 1 element in the final case of
             -- insertItem in which case we already know that x < value.
@@ -109,10 +118,10 @@ insert value summaryData@(Estimator oldCount oldSum quantiles items) =
             -- the first item in a multi-item list. For subsequent steps of
             -- a multi valued list, this case cannot happen as it would have
             -- fallen through to the case below in the previous step.
-            | value <= _iValue x = Item value 1 0 : x : y : xs
-            | value <= _iValue y = x : Item value 1 (calcD $ r + _iG x)
-                                     : y : xs
-            | otherwise          = x : insertItem (_iG x + r) (y : xs)
+            | value <= iValue x = Item value 1 0 : x : y : xs
+            | value <= iValue y = x : Item value 1 (calcD $ r + iG x)
+                                    : y : xs
+            | otherwise         = x : insertItem (iG x + r) (y : xs)
 
         calcD r = max 0
                 $ floor (invariant summaryData (fromIntegral r)) - 1
@@ -120,16 +129,15 @@ insert value summaryData@(Estimator oldCount oldSum quantiles items) =
 
 compress :: Estimator -> Estimator
 compress est@(Estimator _ _ _ items)    =
-  case head items of
-    Nothing      -> est
-    Just minItem ->
-      est
-        { _eItems = (minItem :)
-                      . foldr' compressPair []
-                      . drop 1  -- The exact minimum item must be kept exactly.
-                      . zip items
-                      $ scanl (+) 0 (map _iG items)
-        }
+  case items of
+    []        -> est
+    minItem:_ -> est
+                   { eItems = (minItem :)
+                                . foldr' compressPair []
+                                . drop 1  -- Drops the minimum item
+                                . zip items
+                                $ scanl (+) 0 (map iG items)
+                   }
     where
         compressPair (a, _) [] = [a]
         compressPair (a@(Item _ aG _), r) (b@(Item bVal bG bD):bs)
@@ -142,7 +150,7 @@ compress est@(Estimator _ _ _ items)    =
 query :: Estimator -> Double -> Double
 query est@(Estimator count _ _ items) q = findQuantile allRs items
     where
-        allRs = scanl (+) 0 $ map _iG items
+        allRs = scanl (+) 0 $ map iG items
 
         n = fromIntegral count
         f = invariant est
@@ -150,13 +158,13 @@ query est@(Estimator count _ _ items) q = findQuantile allRs items
         rank  = q * n
         bound = rank + (f rank / 2)
 
-        findQuantile _        []   = 0 / 0  -- NaN
-        findQuantile _        [a]  = _iValue a
+        findQuantile _        []   = realToFrac notANumber
+        findQuantile _        [a]  = iValue a
         findQuantile (_:bR:rs) (a@(Item{}):b@(Item _ bG bD):xs)
-            | fromIntegral (bR + bG + bD) > bound = _iValue a
+            | fromIntegral (bR + bG + bD) > bound = iValue a
             | otherwise            = findQuantile (bR:rs) (b:xs)
-        findQuantile _        _    = 0 / 0 -- This is supposed to fail with an error,
-                                           -- but we don't do that here
+        findQuantile _        _    = realToFrac notANumber -- This is supposed to fail with an error,
+                                                           -- but we don't do that here
 
 invariant :: Estimator -> Double -> Double
 invariant (Estimator count _ quantiles _) r =

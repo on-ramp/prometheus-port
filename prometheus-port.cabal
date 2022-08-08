@@ -1,73 +1,57 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
---
--- see: https://github.com/sol/hpack
---
--- hash: 8c32fb3343d704c45397247d45089b1fae76f946005b3889858305927154ebe1
-
 name:           prometheus-port
-version:        0.1.0.0
+version:        0.2.0.0
 description:    Please see the README on GitHub at <https://github.com/onramp/prometheus-port#readme>
 build-type:     Simple
-extra-source-files:
-    README.md
-    ChangeLog.md
+
+extra-source-files: README.md
 
 library
-  exposed-modules:
-      Prometheus
-  other-modules:
-      Data.List.HList
-      Network.Wai.Middleware.Prometheus
-      Prometheus.GHC
-      Prometheus.Http.Internal
-      Prometheus.Http.Server
-      Prometheus.Internal.Base
-      Prometheus.Internal.Pure
-      Prometheus.Internal.Pure.Base
-      Prometheus.Internal.Pure.Counter
-      Prometheus.Internal.Pure.Gauge
-      Prometheus.Internal.Pure.Histogram
-      Prometheus.Internal.Pure.Summary
-      Prometheus.Primitive
-      Prometheus.Vector
-      Paths_prometheus_port
-  hs-source-dirs:
-      src
-  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
-  ghc-options: -O2 -Wall -Werror -fno-warn-partial-type-signatures -fconstraint-solver-iterations=0 -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -Wno-unused-top-binds -fno-warn-deprecations -fno-warn-orphans
-  build-depends:
-      async
-    , base
-    , bytestring
-    , containers
-    , data-default
-    , http-types
-    , protolude
-    , stm
-    , text
-    , time
-    , wai
-    , warp
+  exposed-modules: Network.Wai.Middleware.Prometheus
+                   Prometheus
+                   Prometheus.GHC
+                   Prometheus.Internal
+                   Prometheus.Internal.Pure
+                   Type.No
+
+  other-modules: Prometheus.Internal.Base
+                 Prometheus.Internal.Primitive
+                 Prometheus.Internal.Pure.Base
+                 Prometheus.Internal.Pure.Counter
+                 Prometheus.Internal.Pure.Gauge
+                 Prometheus.Internal.Pure.Histogram
+                 Prometheus.Internal.Pure.Summary
+                 Prometheus.Internal.Vector
+
+  hs-source-dirs: src
+
+  ghc-options: -O1
+
+  build-depends: base
+               , bytestring
+               , containers
+               , deepseq
+               , http-types
+               , stm
+               , text
+               , wai
+
   default-language: Haskell2010
 
-test-suite spec
+test-suite consistency
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      PrometheusSpec
-      Paths_prometheus_port
-  hs-source-dirs:
-      test
-  default-extensions: ConstraintKinds DataKinds DeriveFunctor DeriveGeneric DeriveLift DerivingStrategies DerivingVia EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings PackageImports PartialTypeSignatures Rank2Types RankNTypes RecordWildCards RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeApplications TypeOperators TypeFamilies
-  ghc-options: -threaded -O2 -Wno-unused-local-binds -Wno-unused-matches
-  build-depends:
-      HUnit
-    , QuickCheck
-    , base >=4.7 && <5
-    , hspec ==2.*
-    , hspec-expectations
-    , prometheus-port
-    , protolude
+
+  main-is: Main.hs
+
+  hs-source-dirs: test/consistency
+
+  ghc-options: -O1
+
+  build-depends: base >=4.7 && <5
+               , bytestring
+               , hspec ==2.*
+               , HUnit
+               , prometheus-port
+
   default-language: Haskell2010

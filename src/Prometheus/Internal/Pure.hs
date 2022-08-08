@@ -1,47 +1,42 @@
 module Prometheus.Internal.Pure
-  ( -- * Data structures
-    NoIdentity
-  , Pure
-    -- * Operations over metric types
-    -- ** Naming
-  , PureNamed (..)
-    -- ** Construction
-  , PureConstructible (..)
-    -- ** Retrieval
-  , PureExtractable (..)
-  , Extract
-    -- ** Exporting
-  , PureExportable (..)
-  , Sample
-  , addTags
-    -- ** Collection
-  , PureIncrementable (..)
-  , PureDecrementable (..)
-  , PureSettable (..)
-  , PureObservable (..)
-    -- * Vector precursors
-  , Tags
-  , Label
-  , PureMappable
-    -- * Pure metric types themselves
-    -- ** Counter
-  , Counter
-  , mkCounter
-    -- ** Gauge
-  , Gauge
-  , mkGauge
-    -- ** Histogram
+  ( -- * Counter
+    Counter (..)
+    -- * Gauge
+  , Gauge (..)
+    -- * Histogram
+  , Histogram (..)
   , Bucket
-  , Histogram
-  , mkHisto
-    -- ** Summary
+  , defBuckets
+    -- * Summary
+  , Item (..)
+  , Estimator (..)
+  , Summary (..)
   , Quantile
-  , Estimator
-  , Summary
-  , PureExportSample(..)
+  , defQuantiles
+  , insert
+  , compress
+  , query
+  , invariant
+    -- * Classes
+    -- ** Construct
+  , Construct (..)
+    -- ** Name
+  , Name (..)
+    -- ** Export
+  , Export (..)
+  , Tags
+  , Sample (..)
+    -- ** Extract  
+  , Extract (..)
+    -- ** Increment
+  , Increment (..)
+    -- ** Decrement
+  , Decrement (..)
+    -- ** Set
+  , Set (..)
+    -- ** Observe
+  , Observe (..)
   ) where
-
-
 
 import           Prometheus.Internal.Pure.Base
 import           Prometheus.Internal.Pure.Counter

@@ -25,22 +25,22 @@ Therefore...
 -- Create metrics
 cntr   <- register . counter   $ Info "counter"   "counter_help"
 gg     <- register . gauge     $ Info "gauge"     "gauge_help"
-hstgrm <- register . histogram ( Info "histogram" "histogram_help" ) def
-smmr   <- register . summary   ( Info "summary"   "summary_help"   ) def
+hstgrm <- register . histogram ( Info "histogram" "histogram_help" ) defBuckets
+smmr   <- register . summary   ( Info "summary"   "summary_help"   ) defQuantiles
 
 -- Collect some data with the metrics
 increment cntr
-cntr .+. 5
+plus 5 cntr
 
 increment gg
-gg .+. 5
+plus 5 gg
 decrement gg
-gg .-. 5
-gg .=. 5
+minus 5 gg
+set 5 gg
 
-hstgrm `observe` 2.5
+observe 2.5 hstgrm
 
-smmr `observe` 2.5
+observe 2.5 smmr
 
 -- Extract and export metrics
 cntrCurrentValue <- extract cntr
@@ -51,7 +51,7 @@ ggExported <- export gg
 vcntr <- register . vector "label" . counter $ Info "counter"   "counter_help"
 
 withLabel "this" vcntr increment
-withlabel "this" vcntr (.+. 5)
+withlabel "this" vcntr $ plus 5
 
 vcntrExported <- export vcntr
 ```
@@ -79,35 +79,7 @@ registeredThese <- genericRegister these
 
 -- Perform operations over the fields as usual
 increment $ this registeredThese
-withLabel "test" (that registeredThese) (`observe` 6.9)
+withLabel "test" (that registeredThese) $ observe 6.9
 
 -- Export metrics
 bytestr <- genericExport registeredThese
-```
-
-## Examples
-
-There are a couple of example on how to plug this machinery in real applications under [example](./example) directory.
-
-
-### Non HTTP Application
-[Simple Example](./example/simple/Main.hs) that provides how to plug this in a non HTTP Application.
-
-### HTTP/Wai Application
-[Server Example](./example/server/Main.hs) that provides how to plug this in a Wai HTTP Application. In this case this middleware is going to give you for free metrics on latency and count status code for your HTTP endpoints
-
-
-## Library implementation
-
-The underlying datatype representations look like:
-
-- For basic metrics: `(Impure o Identity (Pure s))`, where
-  - `s` is the inner __Pure__ representation (e.g. `Pure Double` in case of `Counter`);
-  - `o` is additional arguments needed (e.g. buckets for `Histogram`s);
-
-- For vectors: `Vector ((Impure (l, d) Identity (Pure (Map l) s))`, where
-  - `l` is a list of label names it was constructed with;
-  - `d` is the default singular basic metric (e.g. `Map` with all buckets set to 0 in case of a `Histogram`);
-  - `Pure s` is now `Pure (Map l) s`, so it's a map of metrics.
-
-

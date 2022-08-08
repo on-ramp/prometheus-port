@@ -1,21 +1,81 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Prometheus
-  ( Registrable (..),
-    Extractable (..),
-    Incrementable (..),
-    Decrementable (..),
-    Settable (..),
-    Observable (..),
-    Info (..),
-    def,
-    module Prometheus.Primitive,
-    module Prometheus.Vector,
-    module Prometheus.Http.Server,
-    module Prometheus.GHC,
+  ( -- * Info
+    Info (Info)
+  , Tags
+  , tag
+  , GTag
+  , genericTag
+    -- * Counter
+  , Counter
+  , counter
+    -- * Gauge
+  , Gauge
+  , gauge
+    -- * Histogram
+  , Histogram
+  , histogram
+  , Bucket
+  , defBuckets
+    -- * Summary
+  , Summary
+  , summary
+  , Quantile
+  , defQuantiles
+    -- * Vector
+  , Vector
+  , vector
+  , withLabel
+    -- ** Shorthands
+  , Vector1
+  , Vector2
+  , Vector3
+  , Vector4
+  , Vector5
+  , Vector6
+  , Vector7
+    -- * Classes
+    -- ** Register
+  , Register (..)
+  , GRegister
+  , genericRegister
+  , Metric
+    -- ** Extract
+  , Extract (..)
+    -- ** Export
+  , Export
+  , export
+  , GExport
+  , genericExport
+    -- ** Increment
+  , Increment (..)
+    -- ** Decrement
+  , Decrement (..)
+    -- ** Set
+  , Set (..)
+    -- ** Observe
+  , Observe (..)
   )
 where
 
-import Data.Default
-import Prometheus.GHC
-import Prometheus.Http.Server
-import Prometheus.Primitive
-import Prometheus.Vector
+import           Prometheus.Internal.Base hiding (export, genericExport)
+import qualified Prometheus.Internal.Base as Base
+import           Prometheus.Internal.Primitive
+import           Prometheus.Internal.Pure.Histogram (Bucket, defBuckets)
+import           Prometheus.Internal.Pure.Summary (Quantile, defQuantiles)
+import           Prometheus.Internal.Vector
+
+import qualified Data.ByteString.Lazy.Char8 as BSLC
+import           Data.Functor.Identity
+import           GHC.Generics
+
+
+
+export :: Export a => a -> IO BSLC.ByteString
+export = fmap template . Base.export
+
+
+
+genericExport :: (Generic (f Identity), GExport (Rep (f Identity))) => f Identity -> IO BSLC.ByteString
+genericExport = fmap (foldMap template) . Base.genericExport
