@@ -35,15 +35,21 @@ httpMetrics =
 
 
 
-prometheus
-  :: HttpMetrics Identity
+prometheus'
+  :: (Request -> BSLC.ByteString) -- ^ @path@
+  -> HttpMetrics Identity
   -> Middleware
-prometheus metric app req respond =
+prometheus' modifier metric app req respond =
   measureCont $ \stamp ->
     app req $ \res -> do
-      let path    = BSLC.fromStrict $ rawPathInfo req
+      let path    = modifier req
           method  = BSLC.fromStrict $ requestMethod req
           status  = toLazyByteString . intDec . statusCode $ responseStatus res
       time <- stamp
       withLabel (path, method, status) (hmDuration metric) $ observe time
       respond res
+
+prometheus
+  :: HttpMetrics Identity
+  -> Middleware
+prometheus = prometheus' $ BSLC.fromStrict . rawPathInfo
