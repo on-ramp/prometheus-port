@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances
+           , FlexibleContexts
            , MultiParamTypeClasses
            , ScopedTypeVariables
            , TypeFamilies
