@@ -186,10 +186,20 @@ data Template = Template Info BSLC.ByteString [Sample]
 
 escape :: BSLC.ByteString -> BSLC.ByteString
 escape bs =
-  let (bef, aft) = BSLC.break (== '/') bs
+  let (bef, aft) = BSLC.break (flip elem ("\t\n\v\f\r\"\\" :: String)) bs
+
+      conv '\t' = "\\t"
+      conv '\n' = "\\n"
+      conv '\v' = "\\v"
+      conv '\f' = "\\f"
+      conv '\r' = "\\r"
+      conv '"'  = "\\\""
+      conv '\\' = "\\\\"
+      conv char = BSLC.singleton char
+
   in case BSLC.uncons aft of
-       Nothing      -> bef
-       Just (b, bs) -> "\\" <> escape bs
+       Nothing      -> bef  
+       Just (b, bs) -> bef <> conv b <> escape bs
 
 template :: Template -> BSLC.ByteString
 template (Template (MkInfo name help extra) metric samples)
