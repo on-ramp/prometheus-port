@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric
+           , DerivingStrategies
            , OverloadedStrings #-}
 
 module Prometheus.GHC
@@ -10,13 +11,11 @@ module Prometheus.GHC
 import           Prometheus
 
 import           Control.Monad
-import qualified Data.ByteString.Lazy.Char8 as BSLC
 import           Data.Functor.Identity
 import           GHC.Generics
 import           GHC.Stats
 
 import           Type.No
-
 
 
 data RtsMetrics f =
@@ -53,7 +52,7 @@ data RtsMetrics f =
          , rmGcdetailsCpuSeconds              :: No Identity f Gauge
          , rmGcdetailsElapsedSeconds          :: No Identity f Gauge
          }
-       deriving Generic
+       deriving stock Generic
 
 rtsMetrics :: RtsMetrics Metric
 rtsMetrics =

@@ -77,14 +77,16 @@ import           GHC.Clock
 import           GHC.Generics
 
 
-
+-- | Exports a metric using 'template'.
 export :: Export a => a -> IO BSLC.ByteString
 export = fmap template . Base.export
+{-# INLINEABLE export #-}
 
 
-
+-- | Exports a generic metric using 'template'.
 genericExport :: (Generic (f Identity), GExport (Rep (f Identity))) => f Identity -> IO BSLC.ByteString
 genericExport = fmap (foldMap template) . Base.genericExport
+{-# INLINEABLE genericExport #-}
 
 
 

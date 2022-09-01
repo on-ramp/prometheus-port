@@ -1,27 +1,39 @@
-{-# LANGUAGE DeriveFunctor
+{-# LANGUAGE DeriveAnyClass
+           , DeriveFunctor
+           , DeriveGeneric
+           , DerivingStrategies
            , FlexibleInstances
            , FunctionalDependencies
  #-}
 
 {-# OPTIONS_HADDOCK hide #-}
 
-module Prometheus.Internal.Pure.Base where
+module Prometheus.Internal.Pure.Base
+  ( Tags
+  , Sample(..)
+  , addTags
+  , Construct(..)
+  , Name(..)
+  , Export(..)
+  , Extract(..)
+  , Increment(..)
+  , Decrement(..)
+  , Set(..)
+  , Observe(..)
+  ) where
 
+import           Control.DeepSeq (NFData)
 import qualified Data.ByteString.Lazy as BSL
-import           Data.Functor.Identity
-import           Data.Map (Map)
-import qualified Data.Map as Map
-import           Data.Maybe
 import           Data.Proxy
 import           Data.String
-
-
+import           GHC.Generics (Generic)
 
 type Tags = [(BSL.ByteString, BSL.ByteString)]
 
-data Sample = DoubleSample BSL.ByteString Tags Double
-            | IntSample    BSL.ByteString Tags Int
-              deriving Show
+data Sample = DoubleSample BSL.ByteString Tags {-# UNPACK #-}!Double
+            | IntSample    BSL.ByteString Tags {-# UNPACK #-}!Int
+              deriving stock (Show, Generic)
+              deriving anyclass (NFData)
 
 addTags :: Tags -> [Sample] -> [Sample]
 addTags = fmap . add
@@ -29,8 +41,7 @@ addTags = fmap . add
     add :: Tags -> Sample -> Sample
     add tags (DoubleSample a t d) = DoubleSample a (tags <> t) d
     add tags (IntSample    a t d) = IntSample    a (tags <> t) d
-
-
+{-# INLINABLE addTags #-}
 
 class Construct c a | a -> c where
   construct :: c -> a
