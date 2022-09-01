@@ -83,3 +83,4 @@ withLabel "test" (that registeredThese) $ observe 6.9
 
 -- Export metrics
 bytestr <- genericExport registeredThese
+```
