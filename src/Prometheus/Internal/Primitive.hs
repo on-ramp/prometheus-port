@@ -2,7 +2,24 @@
            , TypeFamilies
            , ScopedTypeVariables #-}
 
-module Prometheus.Internal.Primitive where
+module Prometheus.Internal.Primitive
+  ( register_
+  , extract_
+  , export_
+  , plus_
+  , minus_
+  , set_
+  , observe_
+  , Counter(..)
+  , counter
+  , Gauge(..)
+  , gauge
+  , Histogram(..)
+  , histogram
+  , Summary(..)
+  , summary
+  ) where
+
 
 import           Prometheus.Internal.Base as Base
 import qualified Prometheus.Internal.Pure.Base as Pure
@@ -14,14 +31,12 @@ import qualified Prometheus.Internal.Pure.Summary as Pure (Quantile, Estimator, 
 import           Control.Concurrent.STM.TVar
 import           Control.DeepSeq
 import           Control.Monad.STM
-import qualified Data.ByteString.Lazy.Char8 as BSLC
 import           Data.Functor.Identity
 import           Data.Proxy
-import           System.IO.Unsafe
 
 
 register_ :: Rank a ~ Identity => Metric a -> IO (Impure () TVar (Purify a))
-register_ (Metric (Impure def info base)) = do
+register_ (Metric (Impure _def info base)) = do
   tvar <- newTVarIO $ runIdentity base
   return $ Impure () info tvar
 

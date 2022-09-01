@@ -10,20 +10,45 @@
            , TypeOperators
            , UndecidableInstances #-}
 
-module Prometheus.Internal.Base where
+module Prometheus.Internal.Base
+  ( Tags
+  , Info(..)
+  , pattern Info
+  , Impure(..)
+  , Rank
+  , Purify
+  , Extra
+  , Metric(..)
+  , tag
+  , genericTag
+  , GTag(..)
+  , Register(..)
+  , Extract(..)
+  , Export(..)
+  , genericRegister
+  , GRegister(..)
+  , genericExport
+  , GExport(..)
+  , Increment(..)
+  , Decrement(..)
+  , Set(..)
+  , Observe(..)
+  , Template(..)
+  , escape
+  , template
+  ) where
+
 
 import           Prometheus.Internal.Pure.Base (Sample (..))
 
-import           Control.Concurrent.STM.TVar
 import qualified Data.ByteString.Lazy.Char8 as BSLC
 import           Data.Functor.Identity
 import           Data.Kind
-import qualified Data.Text as Text
 import           GHC.Generics
 
 
-
 type Tags = [(BSLC.ByteString, BSLC.ByteString)]
+
 
 -- Basic description of metrics
 data Info = MkInfo
@@ -38,11 +63,9 @@ pattern Info name help <- MkInfo name help _
     Info name help = MkInfo name help []
 
 
-
 --  A core datatype of this module, takes an existing 'Pure' implementation of a metric
 --  and moves it in a separate 'TVar' with additional information on the side.
 data Impure d f s = Impure d Info (f s)
-
 
 
 type family Rank (s :: Type) :: Type -> Type
@@ -52,7 +75,6 @@ type family Purify (s :: Type) :: Type
 type family Extra (s :: Type) :: Type -> Type
 
 newtype Metric m = Metric { unMetric :: Impure (Extra m (Purify m)) (Rank m) (Purify m) }
-
 
 
 tag :: Tags -> Metric s -> Metric s
@@ -87,7 +109,6 @@ instance ( Generic (f Metric)
   gtag t (K1 k) = K1 . to . gtag t $ from k
 
 
-
 class Register s where
   register :: Metric s -> IO s
 
@@ -96,7 +117,6 @@ class Extract s e | s -> e where
 
 class Export s where
   export :: s -> IO Template
-
 
 
 genericRegister
@@ -131,7 +151,6 @@ instance ( Generic (f Metric)
   gregister (K1 k) = K1 <$> genericRegister k
 
 
-
 genericExport
   :: ( Generic (f Identity)
      , GExport (Rep (f Identity))
@@ -161,7 +180,6 @@ instance ( Generic (f Identity)
   gexport (K1 k) = gexport $ from k
 
 
-
 class Increment s where
   increment :: s -> IO ()
   increment = plus 1
@@ -181,7 +199,6 @@ class Observe s where
   observe :: Double -> s -> IO ()
 
 
-
 data Template = Template Info BSLC.ByteString [Sample]
 
 escape :: BSLC.ByteString -> BSLC.ByteString
@@ -189,7 +206,7 @@ escape bs =
   let (bef, aft) = BSLC.break (== '/') bs
   in case BSLC.uncons aft of
        Nothing      -> bef
-       Just (b, bs) -> "\\" <> escape bs
+       Just (_b, bs) -> "\\" <> escape bs
 
 template :: Template -> BSLC.ByteString
 template (Template (MkInfo name help extra) metric samples)

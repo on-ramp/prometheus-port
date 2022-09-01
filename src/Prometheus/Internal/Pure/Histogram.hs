@@ -4,7 +4,12 @@
 
 {-# OPTIONS_HADDOCK hide #-}
 
-module Prometheus.Internal.Pure.Histogram where
+module Prometheus.Internal.Pure.Histogram
+  ( Bucket
+  , defBuckets
+  , Histogram(..)
+  ) where
+
 
 import           Prometheus.Internal.Pure.Base
 
@@ -12,9 +17,7 @@ import           Control.DeepSeq
 import qualified Data.ByteString.Lazy.Char8 as BSLC
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Data.String
 import           GHC.Real
-
 
 
 type Bucket = Double
@@ -23,7 +26,6 @@ type Bucket = Double
 -- [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
 defBuckets :: [Double]
 defBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
-
 
 
 -- | A histogram is merely a set of buckets, each representing an upper boundary, last always

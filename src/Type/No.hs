@@ -1,7 +1,8 @@
 {-# LANGUAGE TypeFamilies #-}
 
-module Type.No where
-
+module Type.No
+  ( No
+  ) where
 
 
 type family No m f a where

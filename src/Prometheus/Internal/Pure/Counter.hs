@@ -1,21 +1,22 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving
+{-# LANGUAGE DerivingStrategies
+           , GeneralizedNewtypeDeriving
            , MultiParamTypeClasses
            , OverloadedStrings #-}
 
 {-# OPTIONS_HADDOCK hide #-}
 
-module Prometheus.Internal.Pure.Counter where
+module Prometheus.Internal.Pure.Counter
+  ( Counter(..)
+  ) where
+
 
 import           Prometheus.Internal.Pure.Base
 
 import           Control.DeepSeq
-import           Data.String
-import           Data.Functor.Identity
-
 
 
 newtype Counter = Counter { unCounter :: Double }
-                  deriving NFData
+                  deriving newtype NFData
 
 instance Construct () Counter where
   construct () = Counter 0

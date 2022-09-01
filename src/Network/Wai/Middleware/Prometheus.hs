@@ -1,8 +1,14 @@
 {-# LANGUAGE DeriveGeneric
+           , DerivingStrategies
            , NumericUnderscores
            , OverloadedStrings #-}
 
-module Network.Wai.Middleware.Prometheus where
+module Network.Wai.Middleware.Prometheus
+  ( HttpMetrics(..)
+  , httpMetrics
+  , prometheus'
+  , prometheus
+  ) where
 
 import           Prometheus
 import           Type.No
@@ -10,8 +16,6 @@ import           Type.No
 import           Data.ByteString.Builder
 import qualified Data.ByteString.Lazy.Char8 as BSLC
 import           Data.Functor.Identity
-import           Data.Text.Encoding
-import           GHC.Clock
 import           GHC.Generics
 import           Network.HTTP.Types
 import           Network.Wai
@@ -22,7 +26,7 @@ newtype HttpMetrics f =
           HttpMetrics
             { hmDuration :: No Identity f (Vector3 Histogram)
             }
-          deriving Generic
+          deriving stock Generic
 
 {-# NOINLINE httpMetrics #-}
 httpMetrics :: HttpMetrics Metric
@@ -32,8 +36,6 @@ httpMetrics =
        { hmDuration = vector ("path", "method", "status") $
                         histogram (Info "http_req_duration" "HTTP request duration (in seconds)") buckets
        }
-
-
 
 prometheus'
   :: (Request -> BSLC.ByteString) -- ^ @path@

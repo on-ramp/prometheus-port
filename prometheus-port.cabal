@@ -2,7 +2,7 @@ cabal-version: 1.12
 
 name:           prometheus-port
 version:        0.2.1.0
-description:    Please see the README on GitHub at <https://github.com/onramp/prometheus-port#readme>
+description:    Please see the README on GitHub at <https://github.com/on-ramp/prometheus-port#readme>
 build-type:     Simple
 
 extra-source-files: README.md
@@ -26,7 +26,36 @@ library
 
   hs-source-dirs: src
 
-  ghc-options: -O1
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wredundant-constraints
+                       -Wnoncanonical-monad-instances
+                       -Wno-name-shadowing
+  if impl(ghc >= 8.2)
+    ghc-options:       -fhide-source-paths
+  if impl(ghc >= 8.4)
+    ghc-options:       -Wmissing-export-lists
+                       -Wpartial-fields
+  if impl(ghc >= 8.8)
+    ghc-options:       -Wmissing-deriving-strategies
+                       -fwrite-ide-info
+                       -hiedir=.hie
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wunused-packages
+  if impl(ghc >= 9.0)
+    ghc-options:       -Winvalid-haddock
+                       -Wunicode-bidirectional-format-characters
+                       -Werror=unicode-bidirectional-format-characters
+  if impl(ghc >= 9.2)
+    ghc-options:       -Wredundant-bang-patterns
+                       -Woperator-whitespace
+                       -Wimplicit-lift
+  if impl(ghc >= 9.4)
+    ghc-options:       -Wredundant-strictness-flags
+
 
   build-depends: base
                , bytestring
@@ -34,7 +63,6 @@ library
                , deepseq
                , http-types
                , stm
-               , text
                , wai
 
   default-language: Haskell2010
@@ -45,8 +73,6 @@ test-suite consistency
   main-is: Main.hs
 
   hs-source-dirs: test/consistency
-
-  ghc-options: -O1
 
   build-depends: base >=4.7 && <5
                , bytestring

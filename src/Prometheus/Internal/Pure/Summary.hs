@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleInstances
+{-# LANGUAGE DerivingStrategies
+           , FlexibleInstances
            , MultiParamTypeClasses
            , OverloadedStrings
            , TypeFamilies #-}
@@ -11,7 +12,18 @@
      I never bothered to figure out how it actually works, take that >:P)
  -}
 
-module Prometheus.Internal.Pure.Summary where
+module Prometheus.Internal.Pure.Summary
+  ( Quantile
+  , defQuantiles
+  , Item(..)
+  , Estimator(..)
+  , Summary(..)
+  , insert
+  , compress
+  , query
+  , invariant
+  ) where
+
 
 import           Prometheus.Internal.Pure.Base
 
@@ -20,9 +32,7 @@ import qualified Data.ByteString.Lazy.Char8 as BSLC
 import           Data.Foldable
 import           Data.Function
 import           Data.Int
-import           Data.String
 import           GHC.Real
-
 
 
 type Quantile = (Double, Double)
@@ -33,20 +43,18 @@ defQuantiles :: [Quantile]
 defQuantiles = [(0.5, 0.05), (0.9, 0.01), (0.99, 0.001)]
 
 
-
 data Item = Item
               { iValue :: Double
               , iG     :: Int64
               , iD     :: Int64
               }
-            deriving Eq
+            deriving stock Eq
 
 instance Ord Item where
   compare = compare `on` iValue
 
 instance NFData Item where
   rnf (Item v g d) = rnf (v, g, d)
-
 
 
 -- | 'Estimator' is the underlying structure of a summary, aggregating values over time.
@@ -59,7 +67,6 @@ data Estimator = Estimator
 
 instance NFData Estimator where
   rnf (Estimator c s q i) = rnf (c, s, q, i)
-
 
 
 -- | A summary exposes streaming φ-quantiles (0 ≤ φ ≤ 1) of observed events over a sliding time
@@ -95,8 +102,6 @@ instance Export Estimator where
 instance Observe Estimator where
   observe value = insert value . compress
 
-
-
 insert :: Double -> Estimator -> Estimator
 insert value summaryData@(Estimator oldCount oldSum quantiles items) =
         newEstimator $ insertItem 0 items
@@ -125,7 +130,6 @@ insert value summaryData@(Estimator oldCount oldSum quantiles items) =
 
         calcD r = max 0
                 $ floor (invariant summaryData (fromIntegral r)) - 1
-
 
 compress :: Estimator -> Estimator
 compress est@(Estimator _ _ _ items)    =

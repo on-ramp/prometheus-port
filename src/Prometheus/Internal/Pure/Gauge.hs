@@ -1,20 +1,22 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving
+{-# LANGUAGE DerivingStrategies
+           , GeneralizedNewtypeDeriving
            , MultiParamTypeClasses
            , OverloadedStrings #-}
 
 {-# OPTIONS_HADDOCK hide #-}
 
-module Prometheus.Internal.Pure.Gauge where
+module Prometheus.Internal.Pure.Gauge
+  ( Gauge(..)
+  ) where
+
 
 import           Prometheus.Internal.Pure.Base
 
 import           Control.DeepSeq
-import           Data.String
-
 
 
 newtype Gauge = Gauge { unGauge :: Double }
-                deriving NFData
+                deriving newtype NFData
 
 instance Construct () Gauge where
   construct () = Gauge 0
