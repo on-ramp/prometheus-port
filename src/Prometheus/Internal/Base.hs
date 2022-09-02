@@ -47,10 +47,11 @@ import           Data.Kind
 import           GHC.Generics
 
 
+-- | List of tags where @[(label, value)]@.
 type Tags = [(BSLC.ByteString, BSLC.ByteString)]
 
 
--- Basic description of metrics
+-- | Basic description of metrics
 data Info = MkInfo
               { iName :: BSLC.ByteString -- ^ Name of the metric
               , iHelp :: BSLC.ByteString -- ^ Additional commentary
@@ -63,22 +64,55 @@ pattern Info name help <- MkInfo name help _
     Info name help = MkInfo name help []
 
 
---  A core datatype of this module, takes an existing 'Pure' implementation of a metric
---  and moves it in a separate 'TVar' with additional information on the side.
-data Impure d f s = Impure d Info (f s)
+-- | A core datatype of this module, takes an existing /Pure/ implementation of a metric
+-- and moves it in a separate 'Control.Concurrent.STM.TVar' with additional information on the side.
+data Impure def f metric = Impure def Info (f metric)
 
 
-type family Rank (s :: Type) :: Type -> Type
+-- | Returns the effect associated with the actual representation of a metric.
+--
+-- For most metrics, this is just `Identity`.
+-- For vectors is a @Map label@ since each metric of the vector will be associated to a specific label.
+--
+-- @
+-- Rank Gauge ~ Identity
+-- Rank (Vector label metric) ~ Map l
+-- @
+type family Rank (metric :: Type) :: Type -> Type
 
-type family Purify (s :: Type) :: Type
+-- | Returns the 'Prometheus.Internal.Pure.Base' version.
+--
+-- @
+-- Purify Gauge ~ Pure.Gauge
+-- Purify (Vector label metric) ~ Purify metric
+-- @
+type family Purify (metric :: Type) :: Type
 
-type family Extra (s :: Type) :: Type -> Type
+-- | Returns additional data associated to the metric.
+--
+-- For most metrics, this is just `Identity`.
+--
+-- @
+-- Extra Gauge ~ Identity
+-- Extra (Vector label metric) ~ (,) label
+-- @
+type family Extra (metric :: Type) :: Type -> Type
 
+-- | A metric represents a value that is being monitored.
+--
+-- @
+-- Metric Counter ~ Impure (Identity P.Counter) Info (Identity P.Counter)
+--        Gauge                      P.Gauge                   P.Gauge
+--        Histogram                  P.Histogram               P.Histogram
+--        Summary                    P.Summary                 P.Summary
+--
+-- Metric (Vector label metric) ~ Impure (label, Purify metric) Info (Map label (Purify metric))
+-- @
 newtype Metric m = Metric { unMetric :: Impure (Extra m (Purify m)) (Rank m) (Purify m) }
 
 
-tag :: Tags -> Metric s -> Metric s
-tag t' (Metric (Impure d (MkInfo n h t) s)) = Metric $ Impure d (MkInfo n h $ t <> t') s
+tag :: Tags -> Metric metric -> Metric metric
+tag t' (Metric (Impure def (MkInfo n h t) metric)) = Metric $ Impure def (MkInfo n h $ t <> t') metric
 
 genericTag
   :: ( Generic (f Metric)
@@ -99,7 +133,7 @@ instance (GTag i, GTag j) => GTag (i :*: j) where
 instance GTag i => GTag (M1 k m i) where
   gtag t (M1 m) = M1 $ gtag t m
 
-instance GTag (K1 a (Metric s)) where
+instance GTag (K1 a (Metric metric)) where
   gtag t (K1 k) = K1 $ tag t k
 
 instance ( Generic (f Metric)
@@ -109,14 +143,14 @@ instance ( Generic (f Metric)
   gtag t (K1 k) = K1 . to . gtag t $ from k
 
 
-class Register s where
-  register :: Metric s -> IO s
+class Register metric where
+  register :: Metric metric -> IO metric
 
-class Extract s e | s -> e where
-  extract :: s -> IO e
+class Extract metric e | metric -> e where
+  extract :: metric -> IO e
 
-class Export s where
-  export :: s -> IO Template
+class Export metric where
+  export :: metric -> IO Template
 
 
 genericRegister
@@ -140,7 +174,7 @@ instance (GRegister i o, GRegister j p) =>
 instance GRegister i o => GRegister (M1 k m i) (M1 l n o) where
   gregister (M1 m) = M1 <$> gregister m
 
-instance Register s => GRegister (K1 a (Metric s)) (K1 a s) where
+instance Register metric => GRegister (K1 a (Metric metric)) (K1 a metric) where
   gregister (K1 k) = K1 <$> register k
 
 instance ( Generic (f Metric)
@@ -170,7 +204,7 @@ instance (GExport i, GExport j) => GExport (i :*: j) where
 instance GExport i => GExport (M1 k m i) where
   gexport (M1 m) = gexport m
 
-instance {-# OVERLAPPABLE #-} Export s => GExport (K1 a s) where
+instance {-# OVERLAPPABLE #-} Export metric => GExport (K1 a metric) where
   gexport (K1 k) = pure <$> export k
 
 instance ( Generic (f Identity)
@@ -180,23 +214,23 @@ instance ( Generic (f Identity)
   gexport (K1 k) = gexport $ from k
 
 
-class Increment s where
-  increment :: s -> IO ()
+class Increment metric where
+  increment :: metric -> IO ()
   increment = plus 1
 
-  plus :: Double -> s -> IO ()
+  plus :: Double -> metric -> IO ()
 
-class Decrement s where
-  decrement :: s -> IO ()
+class Decrement metric where
+  decrement :: metric -> IO ()
   decrement = minus 1
 
-  minus :: Double -> s -> IO ()
+  minus :: Double -> metric -> IO ()
 
-class Set s where
-  set :: Double -> s -> IO ()
+class Set metric where
+  set :: Double -> metric -> IO ()
 
-class Observe s where
-  observe :: Double -> s -> IO ()
+class Observe metric where
+  observe :: Double -> metric -> IO ()
 
 
 data Template = Template Info BSLC.ByteString [Sample]
