@@ -94,6 +94,7 @@ benchmark time
                , deepseq
                , gauge
                , prometheus-port
+               , random
 
   ghc-options: -O2
                -threaded

@@ -5,6 +5,8 @@
  #-}
 
 {-# OPTIONS_HADDOCK hide #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Prometheus.Internal.Pure.Base
   ( Tags
@@ -20,15 +22,18 @@ module Prometheus.Internal.Pure.Base
   , Observe(..)
   ) where
 
+import           Control.DeepSeq (NFData)
 import qualified Data.ByteString.Lazy as BSL
 import           Data.Proxy
 import           Data.String
+import           GHC.Generics (Generic)
 
 type Tags = [(BSL.ByteString, BSL.ByteString)]
 
 data Sample = DoubleSample BSL.ByteString Tags Double
             | IntSample    BSL.ByteString Tags Int
-              deriving stock Show
+              deriving stock (Show, Generic)
+              deriving anyclass (NFData)
 
 addTags :: Tags -> [Sample] -> [Sample]
 addTags = fmap . add

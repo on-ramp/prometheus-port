@@ -80,6 +80,9 @@ data Summary = Summary
                  , sQuantiles :: [(Double, Double)] -- ^ [(quantile, φ-quantile)]
                  }
 
+instance NFData Summary where
+  rnf (Summary c d qs) = rnf (c, d, qs)
+
 instance Name Estimator where
   name _ = "summary"
 
