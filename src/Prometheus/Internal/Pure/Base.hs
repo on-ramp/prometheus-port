@@ -30,8 +30,8 @@ import           GHC.Generics (Generic)
 
 type Tags = [(BSL.ByteString, BSL.ByteString)]
 
-data Sample = DoubleSample BSL.ByteString Tags Double
-            | IntSample    BSL.ByteString Tags Int
+data Sample = DoubleSample BSL.ByteString Tags {-# UNPACK #-}!Double
+            | IntSample    BSL.ByteString Tags {-# UNPACK #-}!Int
               deriving stock (Show, Generic)
               deriving anyclass (NFData)
 
@@ -41,6 +41,7 @@ addTags = fmap . add
     add :: Tags -> Sample -> Sample
     add tags (DoubleSample a t d) = DoubleSample a (tags <> t) d
     add tags (IntSample    a t d) = IntSample    a (tags <> t) d
+{-# INLINABLE addTags #-}
 
 class Construct c a | a -> c where
   construct :: c -> a

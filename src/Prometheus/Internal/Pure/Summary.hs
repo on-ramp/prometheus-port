@@ -1,4 +1,5 @@
-{-# LANGUAGE DerivingStrategies
+{-# LANGUAGE BangPatterns
+           , DerivingStrategies
            , FlexibleInstances
            , MultiParamTypeClasses
            , OverloadedStrings
@@ -32,6 +33,7 @@ import qualified Data.ByteString.Lazy.Char8 as BSLC
 import           Data.Foldable
 import           Data.Function
 import           Data.Int
+import qualified Data.List as List
 import           GHC.Real
 
 
@@ -44,9 +46,9 @@ defQuantiles = [(0.5, 0.05), (0.9, 0.01), (0.99, 0.001)]
 
 
 data Item = Item
-              { iValue :: Double
-              , iG     :: Int64
-              , iD     :: Int64
+              { iValue :: {-# UNPACK #-} !Double
+              , iG     :: {-# UNPACK #-} !Int64
+              , iD     :: {-# UNPACK #-} !Int64
               }
             deriving stock Eq
 
@@ -59,8 +61,8 @@ instance NFData Item where
 
 -- | 'Estimator' is the underlying structure of a summary, aggregating values over time.
 data Estimator = Estimator
-                   { eCount     :: Int64
-                   , eSum       :: Double
+                   { eCount     :: {-# UNPACK #-} !Int64
+                   , eSum       :: {-# UNPACK #-} !Double
                    , eQuantiles :: [Quantile]
                    , eItems     :: [Item]
                    }
@@ -75,8 +77,8 @@ instance NFData Estimator where
 --   Note: used implementation has no notion of a time window per se, it just compresses
 --         the 'Estimator' on every observation.
 data Summary = Summary
-                 { sCount     :: Int                -- ^ Number of observations made
-                 , sDouble    :: Double             -- ^ Total sum of all observations
+                 { sCount     :: {-# UNPACK #-} !Int                -- ^ Number of observations made
+                 , sDouble    :: {-# UNPACK #-} !Double             -- ^ Total sum of all observations
                  , sQuantiles :: [(Double, Double)] -- ^ [(quantile, φ-quantile)]
                  }
 
@@ -85,15 +87,18 @@ instance NFData Summary where
 
 instance Name Estimator where
   name _ = "summary"
+  {-# INLINABLE name #-}
 
 instance Construct [Quantile] Estimator where
   construct quantiles = Estimator 0 0 quantiles []
+  {-# INLINABLE construct #-}
 
 instance Extract Estimator Summary where
   extract estimator' =
     let estimator@(Estimator count esum quantiles _) = compress estimator'
         quants = fmap fst quantiles
     in Summary (fromIntegral count) esum . zip quants $ map (query estimator) quants
+  {-# INLINE extract #-}
 
 instance Export Estimator where
   export estimator =
@@ -101,9 +106,11 @@ instance Export Estimator where
     in converted quantiles <> [ DoubleSample "_sum" [] ssum, IntSample "_count" [] count ]
     where
       converted = fmap (\(k, a) -> DoubleSample "" [("quantile", BSLC.pack $ show k)] a)
+  {-# INLINE export #-}
 
 instance Observe Estimator where
-  observe value = insert value . compress
+  observe !value = insert value . compress
+  {-# INLINE observe #-}
 
 insert :: Double -> Estimator -> Estimator
 insert value summaryData@(Estimator oldCount oldSum quantiles items) =
@@ -112,7 +119,7 @@ insert value summaryData@(Estimator oldCount oldSum quantiles items) =
         newEstimator = Estimator (oldCount + 1) (oldSum + value) quantiles
 
         insertItem _ [] = [Item value 1 0]
-        insertItem r [x]
+        insertItem !r [x]
             -- The first two cases cover the scenario where the initial size of
             -- the list is one.
             | r == 0 && value < iValue x = Item value 1 0 : [x]
@@ -131,8 +138,9 @@ insert value summaryData@(Estimator oldCount oldSum quantiles items) =
                                     : y : xs
             | otherwise         = x : insertItem (iG x + r) (y : xs)
 
-        calcD r = max 0
+        calcD !r = max 0
                 $ floor (invariant summaryData (fromIntegral r)) - 1
+{-# INLINABLE insert #-}
 
 compress :: Estimator -> Estimator
 compress est@(Estimator _ _ _ items)    =
@@ -143,7 +151,7 @@ compress est@(Estimator _ _ _ items)    =
                                 . foldr' compressPair []
                                 . drop 1  -- Drops the minimum item
                                 . zip items
-                                $ scanl (+) 0 (map iG items)
+                                $ List.scanl' (\ !b -> (+) b) 0 (map iG items)
                    }
     where
         compressPair (a, _) [] = [a]
@@ -153,17 +161,18 @@ compress est@(Estimator _ _ _ items)    =
             | otherwise           = a : b : bs
             where
                 inv = floor $ invariant est (fromIntegral r)
+{-# INLINABLE compress #-}
 
 query :: Estimator -> Double -> Double
 query est@(Estimator count _ _ items) q = findQuantile allRs items
     where
-        allRs = scanl (+) 0 $ map iG items
+        allRs = List.scanl (\ !b -> (+) b) 0 $ map iG items
 
-        n = fromIntegral count
-        f = invariant est
+        !n = fromIntegral count
+        !f = invariant est
 
-        rank  = q * n
-        bound = rank + (f rank / 2)
+        !rank  = q * n
+        !bound = rank + (f rank / 2)
 
         findQuantile _        []   = realToFrac notANumber
         findQuantile _        [a]  = iValue a
@@ -172,10 +181,12 @@ query est@(Estimator count _ _ items) q = findQuantile allRs items
             | otherwise            = findQuantile (bR:rs) (b:xs)
         findQuantile _        _    = realToFrac notANumber -- This is supposed to fail with an error,
                                                            -- but we don't do that here
+{-# INLINABLE query #-}
 
 invariant :: Estimator -> Double -> Double
-invariant (Estimator count _ quantiles _) r =
+invariant (Estimator count _ quantiles _) !r =
   let n = fromIntegral count
       fj (q, e) | q * n <= r = 2 * e * r / q
                 | otherwise  = 2 * e * (n - r) / (1 - q)
   in max 1 . minimum $ map fj quantiles
+{-# INLINABLE invariant #-}

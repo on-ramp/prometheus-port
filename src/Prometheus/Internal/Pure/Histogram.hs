@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleInstances
+{-# LANGUAGE BangPatterns
+           , FlexibleInstances
            , MultiParamTypeClasses
            , OverloadedStrings #-}
 
@@ -15,8 +16,9 @@ import           Prometheus.Internal.Pure.Base
 
 import           Control.DeepSeq
 import qualified Data.ByteString.Lazy.Char8 as BSLC
-import           Data.Map (Map)
-import qualified Data.Map as Map
+import qualified Data.List as List
+import           Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import           GHC.Real
 
 
@@ -33,8 +35,8 @@ defBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
 --
 --   Note: 'infinity' is always attached to the end of the bucket list.
 data Histogram = Histogram
-                   { hSum     :: Double        -- ^ Total sum of all observations
-                   , hCount   :: Int           -- ^ Number of observations made
+                   { hSum     :: {-# UNPACK #-} !Double -- ^ Total sum of all observations
+                   , hCount   :: {-# UNPACK #-} !Int    -- ^ Number of observations made
                    , hBuckets :: Map Bucket Int
                    }
 
@@ -43,13 +45,16 @@ instance NFData Histogram where
 
 instance Name Histogram where
   name _ = "histogram"
+  {-# INLINABLE name #-}
 
 instance Construct [Bucket] Histogram where
   construct buckets =
-    Histogram 0 0 . Map.fromList $ flip (,) 0 <$> buckets <> [fromRational infinity]
+    Histogram 0 0 . Map.fromList $! flip (,) 0 <$> buckets <> [fromRational infinity]
+  {-# INLINABLE construct #-}
 
 instance Extract Histogram Histogram where
   extract = id
+  {-# INLINE extract #-}
 
 instance Export Histogram where
   export (Histogram hsum count buckets) =
@@ -57,13 +62,14 @@ instance Export Histogram where
     where
       converted = fmap (\(k, a) -> IntSample "_bucket" [("le", showWithInf k)] a) . tailSafe . cumulative . Map.toList
 
-      cumulative as = scanl (\(_, a) (b, c) -> (b, c + a)) (0, 0) as
+      cumulative as = List.scanl' (\(_, a) (b, !c) -> (b, c + a)) (0, 0) as
 
       tailSafe [] = []
       tailSafe as = tail as
 
       showWithInf v | v == fromRational infinity = "+Inf"
                     | otherwise                  = BSLC.pack $ show v
+  {-# INLINABLE export #-}
 
 instance Observe Histogram where
   observe value (Histogram hsum count buckets) =
@@ -71,3 +77,4 @@ instance Observe Histogram where
       case Map.lookupGE value buckets of
         Nothing         -> buckets
         Just (upper, _) -> Map.adjust (+ 1) upper buckets
+  {-# INLINE observe #-}

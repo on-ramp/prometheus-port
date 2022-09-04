@@ -1,9 +1,11 @@
-{-# LANGUAGE DerivingStrategies
+{-# LANGUAGE BangPatterns
+           , DerivingStrategies
            , GeneralizedNewtypeDeriving
            , MultiParamTypeClasses
            , OverloadedStrings #-}
 
 {-# OPTIONS_HADDOCK hide #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Prometheus.Internal.Pure.Counter
   ( Counter(..)
@@ -20,18 +22,26 @@ newtype Counter = Counter { unCounter :: Double }
 
 instance Construct () Counter where
   construct () = Counter 0
+  {-# INLINABLE construct #-}
 
 instance Name Counter where
   name _ = "counter"
+  {-# INLINABLE name #-}
 
 instance Extract Counter Double where
   extract = unCounter
+  {-# INLINE extract #-}
 
 instance Export Counter where
   export = pure . DoubleSample "" [] . unCounter
+  {-# INLINE export #-}
 
 instance Increment Counter where
-  plus a (Counter c) = Counter $ max c (c + a)
+  plus a (Counter c) = Counter $
+    let !c' = c + a
+    in force $ max c c'
+  {-# INLINE plus #-}
 
 instance Set Counter where
-  set a (Counter c) = Counter $ max c a
+  set !a (Counter c) = Counter $ force $ max c a
+  {-# INLINE set #-}
