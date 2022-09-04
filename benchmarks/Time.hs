@@ -62,7 +62,7 @@ main =
     benchObservePure setUp title =
       [ env (setUp i) $ \ ~(m, vs) ->
           bench (title ++ ": " ++ show i) $ nf (\m -> List.foldl' (flip Pure.observe) m vs) m
-        | i <- [1000, 10000]
+        | i <- [10000, 100000]
       ]
 
     benchExportPure ::
@@ -73,7 +73,7 @@ main =
     benchExportPure setUp title =
       [ env (setUp i) $ \m ->
           bench (title ++ ": " ++ show i) $ nf Pure.export m
-        | i <- [1000, 10000]
+        | i <- [10000, 100000]
       ]
 
     setIncrPureCounter :: IO Pure.Counter
