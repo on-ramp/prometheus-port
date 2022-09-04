@@ -111,9 +111,11 @@ type family Extra (metric :: Type) :: Type -> Type
 newtype Metric m = Metric { unMetric :: Impure (Extra m (Purify m)) (Rank m) (Purify m) }
 
 
+-- | Appends 'Tags' to the given 'Metric'.
 tag :: Tags -> Metric metric -> Metric metric
 tag t' (Metric (Impure def (MkInfo n h t) metric)) = Metric $ Impure def (MkInfo n h $ t <> t') metric
 
+-- | Provides 'tag' for any type that derives 'Generic'.
 genericTag
   :: ( Generic (f Metric)
      , GTag (Rep (f Metric))
@@ -152,7 +154,32 @@ class Extract metric e | metric -> e where
 class Export metric where
   export :: metric -> IO Template
 
-
+-- | Provides 'register' for any type that derives 'Generic'.
+--
+-- @
+-- data ServerMetrics f =
+--   ServerMetrics
+--     { smErrors  :: No Identity f Counter
+--     , smLatency :: No Identity f Summary
+--     , ...
+--     }
+--   deriving stock Generic
+--
+-- serverMetrics :: ServerMetrics Metric
+-- serverMetrics = ServerMetrics
+--   {
+--   , smErrors = counter (Info "errors" "Fatal errors registered on the server")
+--   , smLatency = summary (Info "latency" "Server's latency to response reply") defQuantiles
+--   }
+--
+-- main = do
+--   ServerMetrics{..} <- genericRegister serverMetrics
+--   ...
+--   increment smErrors
+--   ...
+--   observe latency smLatency
+--   ...
+-- @
 genericRegister
   :: ( Generic (f Metric)
      , Generic (f Identity)
@@ -185,6 +212,7 @@ instance ( Generic (f Metric)
   gregister (K1 k) = K1 <$> genericRegister k
 
 
+-- | Provides 'export' for any type that derives 'Generic'.
 genericExport
   :: ( Generic (f Identity)
      , GExport (Rep (f Identity))

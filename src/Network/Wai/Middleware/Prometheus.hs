@@ -21,14 +21,15 @@ import           Network.HTTP.Types
 import           Network.Wai
 
 
-
+-- | Records the latency of the HTTP calls with 'prometheus' middleware.
 newtype HttpMetrics f =
           HttpMetrics
             { hmDuration :: No Identity f (Vector3 Histogram)
             }
           deriving stock Generic
 
-{-# NOINLINE httpMetrics #-}
+-- | The pure 'HttpMetrics'.
+-- In order to use this, you would need to 'register' the metric.
 httpMetrics :: HttpMetrics Metric
 httpMetrics =
   let buckets = take 14 . iterate (*2) $! 1 / 1024
@@ -36,7 +37,9 @@ httpMetrics =
        { hmDuration = vector ("path", "method", "status") $
                         histogram (Info "http_req_duration" "HTTP request duration (in seconds)") buckets
        }
+{-# NOINLINE httpMetrics #-}
 
+-- | Same as 'prometheus', but allows to modify a custom @path@ getter.
 prometheus'
   :: (Request -> BSLC.ByteString) -- ^ @path@
   -> HttpMetrics Identity
@@ -51,6 +54,16 @@ prometheus' modifier metric app req respond =
       withLabel (path, method, status) (hmDuration metric) $ observe time
       respond res
 
+-- | 'Middleware' to collect 'HttpMetrics'.
+--
+-- @
+-- main = do
+--   metrics <- genericRegister httpMetrics
+--   ...
+--   Warp.run port
+--     $ prometheus metrics
+--     $ app
+-- @
 prometheus
   :: HttpMetrics Identity
   -> Middleware
