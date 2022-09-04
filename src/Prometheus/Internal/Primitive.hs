@@ -29,7 +29,6 @@ import qualified Prometheus.Internal.Pure.Histogram as Pure (Bucket, Histogram)
 import qualified Prometheus.Internal.Pure.Summary as Pure (Quantile, Estimator, Summary)
 
 import           Control.Concurrent.STM.TVar
-import           Control.DeepSeq
 import           Control.Monad.STM
 import           Data.Functor.Identity
 import           Data.Proxy
@@ -47,17 +46,17 @@ export_ :: (Pure.Name a, Pure.Export a) => Impure d TVar a -> IO Template
 export_ (Impure _ info t :: Impure d TVar a) =
   Template info (Pure.name (Proxy :: Proxy a)) . Pure.export <$> readTVarIO t
 
-plus_ :: (NFData a, Pure.Increment a) => Double -> Impure d TVar a -> IO ()
-plus_ a (Impure _ _ t) = atomically . modifyTVar' t $ force . Pure.plus a
+plus_ :: (Pure.Increment a) => Double -> Impure d TVar a -> IO ()
+plus_ a (Impure _ _ t) = atomically . modifyTVar' t $ Pure.plus a
 
-minus_ :: (NFData a, Pure.Decrement a) => Double -> Impure d TVar a -> IO ()
-minus_ a (Impure _ _ t) = atomically . modifyTVar' t $ force . Pure.minus a
+minus_ :: (Pure.Decrement a) => Double -> Impure d TVar a -> IO ()
+minus_ a (Impure _ _ t) = atomically . modifyTVar' t $ Pure.minus a
 
-set_ :: (NFData a, Pure.Set a) => Double -> Impure d TVar a -> IO ()
-set_ a (Impure _ _ t) = atomically . modifyTVar' t $ force . Pure.set a
+set_ :: (Pure.Set a) => Double -> Impure d TVar a -> IO ()
+set_ a (Impure _ _ t) = atomically . modifyTVar' t $ Pure.set a
 
-observe_ :: (NFData a, Pure.Observe a) => Double -> Impure d TVar a -> IO ()
-observe_ a (Impure _ _ t) = atomically . modifyTVar' t $ force . Pure.observe a
+observe_ :: (Pure.Observe a) => Double -> Impure d TVar a -> IO ()
+observe_ a (Impure _ _ t) = atomically . modifyTVar' t $ Pure.observe a
 
 
 
