@@ -1,23 +1,17 @@
-# prometheus-porting
+# prometheus-port [![CircleCI](https://dl.circleci.com/status-badge/img/gh/on-ramp/prometheus-port/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/on-ramp/prometheus-port/tree/master)
 
 This library is yet another [prometheus client](https://prometheus.io/docs/instrumenting/writing_clientlibs)
 implementation, with [prometheus](https://hackage.haskell.org/package/prometheus) being a bulky
 mess of imports and [prometheus-client](https://hackage.haskell.org/package/prometheus) breaking
 referential transparency (it's still probably a better choice for smaller-sized projects).
 
-
-
 ## Library usage
 
 The interface defined in this package is an exact copy of that defined in
 [prometheus-client](https://hackage.haskell.org/package/prometheus), except:
 
-- Collection operations are all defined in typeclasses
-    (e.g. Counters and Gauges use `increment` instead of their respective `incCounter` and `incGauge`);
-
-- Metrics can be registered and exported in bulk if defined inside of a matching `Generic` datatype;
-
-Therefore...
+- Collection operations are all defined in typeclasses (e.g. Counters and Gauges use `increment` instead of their respective `incCounter` and `incGauge`),
+- and metrics can be registered and exported in bulk if defined inside of a matching `Generic` datatype.
 
 ### Using metrics as usual
 
@@ -56,7 +50,6 @@ withlabel "this" vcntr $ plus 5
 vcntrExported <- export vcntr
 ```
 
-
 ### Packing metrics into datatypes
 
 ```haskell
@@ -83,3 +76,4 @@ withLabel "test" (that registeredThese) $ observe 6.9
 
 -- Export metrics
 bytestr <- genericExport registeredThese
+```

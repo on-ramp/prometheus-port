@@ -5,45 +5,80 @@
            , TypeFamilies
            , UndecidableInstances #-}
 
-module Prometheus.Internal.Vector where
+module Prometheus.Internal.Vector
+  ( Vector(..)
+  , vector
+  , withLabel
+  , Vector1
+  , Vector2
+  , Vector3
+  , Vector4
+  , Vector5
+  , Vector6
+  , Vector7
+  , Label1
+  , Label2
+  , Label3
+  , Label4
+  , Label5
+  , Label6
+  , Label7
+  , Zip(..)
+  ) where
 
 import           Prometheus.Internal.Base
-import           Prometheus.Internal.Primitive
 import qualified Prometheus.Internal.Pure.Base as Pure
-import qualified Prometheus.Internal.Pure.Counter as Counter
-import qualified Prometheus.Internal.Pure.Gauge as Gauge
-import qualified Prometheus.Internal.Pure.Histogram as Histogram
-import qualified Prometheus.Internal.Pure.Summary as Summary
 
 import           Control.Concurrent.STM.TVar
 import           Control.DeepSeq
 import           Control.Monad.STM
 import qualified Data.ByteString.Lazy.Char8 as BSLC
-import           Data.Coerce
 import           Data.Functor.Compose
 import           Data.Functor.Identity
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Maybe
 import           Data.Proxy
-import           Data.Traversable
 
 
+-- | Models multi-dimensional metrics shared under the same name.
+--
+-- @
+-- 'Vector Label2 Counter' corresponds to the 2-dimensional counter metric e.g. coordinates in a plane.
+-- 'Vector Label3 Counter' corresponds to the 3-dimensional counter metric e.g. coordinates in a space.
+-- @
+newtype Vector label metric = Vector { unVector :: Impure (label, Purify metric) (Compose TVar (Map label)) (Purify metric) }
 
-newtype Vector l s = Vector { unVector :: Impure (l, Purify s) (Compose TVar (Map l)) (Purify s) }
+type instance Rank (Vector label metric) = Map label
 
-type instance Rank (Vector l s) = Map l
+type instance Purify (Vector label metric) = Purify metric
 
-type instance Purify (Vector l s) = Purify s
+type instance Extra (Vector label metric) = (,) label
 
-type instance Extra (Vector l s) = (,) l
+-- | Create a new 'Vector' of dimensions @label@ and metric @Metric metric@.
+--
+-- @
+-- let coordMetrics = vector ("x", "y") $ counter (Info "coordinates" "Coordinates counter in a 2-dimensional space")
+-- let httpMetrics = vector ("path", "method", "status") $ histogram (Info "http_req_duration" "HTTP request duration (in seconds)") buckets
+-- @
+--
+-- The constraint @Extra metric ~ Identity@ limits the @metric@ type to the primitive metrics (e.g. 'Counter', 'Histogram'...).
+vector :: (Extra metric ~ Identity) => label -> Metric metric -> Metric (Vector label metric)
+vector label (Metric (Impure (Identity def) info _base)) = Metric $ Impure (label, def) info Map.empty
+{-# INLINEABLE vector #-}
 
-vector :: Extra s ~ Identity => l -> Metric s -> Metric (Vector l s)
-vector l (Metric (Impure (Identity def) info _base)) = Metric $ Impure (l, def) info Map.empty
-
-withLabel :: l -> Vector l s -> ((l, Vector l s) -> t) -> t
-withLabel l v a = a (l, v)
-
+-- | Operate on a specific metric of a 'Vector'
+--
+-- @
+-- httpMetrics :: Vector3 Histogram
+-- httpMetrics = vector ("path", "method", "status") $
+--   histogram (Info "http_req_duration" "HTTP request duration (in seconds)") buckets
+--
+-- withLabel ("/users", "GET", "200") $ observe time
+-- @
+withLabel :: label -> Vector label metric -> ((label, Vector label metric) -> t) -> t
+withLabel label v a = a (label, v)
+{-# INLINEABLE withLabel #-}
 
 
 type Vector1 = Vector Label1
@@ -54,16 +89,18 @@ type Vector5 = Vector Label5
 type Vector6 = Vector Label6
 type Vector7 = Vector Label7
 
+
 type Label1 =  BSLC.ByteString    
 type Label2 = (BSLC.ByteString, BSLC.ByteString)    
 type Label3 = (BSLC.ByteString, BSLC.ByteString, BSLC.ByteString)    
 type Label4 = (BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString)    
 type Label5 = (BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString)    
 type Label6 = (BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString)    
-type Label7 = (BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString)    
+type Label7 = (BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString, BSLC.ByteString)
+
     
-class Zip l where    
-  zipper :: Ord l => l -> l -> Tags    
+class Zip label where
+  zipper :: Ord label => label -> label -> Tags
     
 instance Zip Label1 where    
   zipper a n = [(a, n)]    
@@ -81,41 +118,47 @@ instance Zip Label5 where
   zipper (a, b, c, d, e) (n, o, p, q, r) = [(a, n), (b, o), (c, p), (d, q), (e, r)]    
     
 instance Zip Label6 where    
-  zipper (a, b, c, d, e, f) (n, o, p, q, r, s) = [(a, n), (b, o), (c, p), (d, q), (e, r), (s, f)]    
+  zipper (a, b, c, d, e, f) (n, o, p, q, r, metric) = [(a, n), (b, o), (c, p), (d, q), (e, r), (metric, f)]
     
 instance Zip Label7 where    
-  zipper (a, b, c, d, e, f, g) (n, o, p, q, r, s, t) = [(a, n), (b, o), (c, p), (d, q), (e, r), (s, f), (t, g)]
+  zipper (a, b, c, d, e, f, g) (n, o, p, q, r, metric, t) = [(a, n), (b, o), (c, p), (d, q), (e, r), (metric, f), (t, g)]
 
 
-
-instance Register s => Register (Vector l s) where
+instance Register (Vector label metric) where
   register (Metric (Impure def info _)) = do
     tvar <- newTVarIO Map.empty
     return . Vector . Impure def info $ Compose tvar
+  {-# INLINEABLE register #-}
 
-instance Pure.Extract (Purify s) e => Extract (Vector l s) (Map l e) where
+instance Pure.Extract (Purify metric) e => Extract (Vector label metric) (Map label e) where
   extract (Vector (Impure _ _ (Compose tvar))) =
     fmap Pure.extract <$> readTVarIO tvar
+  {-# INLINEABLE extract #-}
 
-instance (Zip l, Ord l, Pure.Name (Purify s), Pure.Export (Purify s)) => Export (Vector l s) where
+instance (Zip label, Ord label, Pure.Name (Purify metric), Pure.Export (Purify metric)) => Export (Vector label metric) where
   export (Vector (Impure (tags, _) info (Compose tvar))) =
-    Template info (Pure.name (Proxy :: Proxy (Purify s))) . f tags . Map.toList <$> readTVarIO tvar
+    Template info (Pure.name (Proxy :: Proxy (Purify metric))) . f tags . Map.toList <$> readTVarIO tvar
     where
-      f :: l -> [(l, Purify s)] -> [Pure.Sample]
-      f k = foldMap $ \(l, o) -> Pure.addTags (zipper k l) $ Pure.export o
+      f :: label -> [(label, Purify metric)] -> [Pure.Sample]
+      f k = foldMap $ \(label, o) -> Pure.addTags (zipper k label) $ Pure.export o
+  {-# INLINEABLE export #-}
 
-instance (NFData l, NFData (Purify s), Ord l, Pure.Increment (Purify s)) => Increment (l, Vector l s) where
-  plus a (l, Vector (Impure (_, def) info (Compose tvar))) =
-    atomically . modifyTVar' tvar $ force . Map.alter (Just . Pure.plus a . fromMaybe def) l
+instance (NFData label, NFData (Purify metric), Ord label, Pure.Increment (Purify metric)) => Increment (label, Vector label metric) where
+  plus a (label, Vector (Impure (_, def) _info (Compose tvar))) =
+    atomically . modifyTVar' tvar $ force . Map.alter (Just . Pure.plus a . fromMaybe def) label
+  {-# INLINEABLE plus #-}
 
-instance (NFData l, NFData (Purify s), Ord l, Pure.Decrement (Purify s)) => Decrement (l, Vector l s) where
-  minus a (l, Vector (Impure (_, def) info (Compose tvar))) =
-    atomically . modifyTVar' tvar $ force . Map.alter (Just . Pure.minus a . fromMaybe def) l
+instance (NFData label, NFData (Purify metric), Ord label, Pure.Decrement (Purify metric)) => Decrement (label, Vector label metric) where
+  minus a (label, Vector (Impure (_, def) _info (Compose tvar))) =
+    atomically . modifyTVar' tvar $ force . Map.alter (Just . Pure.minus a . fromMaybe def) label
+  {-# INLINEABLE minus #-}
 
-instance (NFData l, NFData (Purify s), Ord l, Pure.Set (Purify s)) => Set (l, Vector l s) where
-  set a (l, Vector (Impure (_, def) info (Compose tvar))) =
-    atomically . modifyTVar' tvar $ force . Map.alter (Just . Pure.set a . fromMaybe def) l
+instance (NFData label, NFData (Purify metric), Ord label, Pure.Set (Purify metric)) => Set (label, Vector label metric) where
+  set a (label, Vector (Impure (_, def) _info (Compose tvar))) =
+    atomically . modifyTVar' tvar $ force . Map.alter (Just . Pure.set a . fromMaybe def) label
+  {-# INLINEABLE set #-}
 
-instance (NFData l, NFData (Purify s), Ord l, Pure.Observe (Purify s)) => Observe (l, Vector l s) where
-  observe a (l, Vector (Impure (_, def) info (Compose tvar))) =
-    atomically . modifyTVar' tvar $ force . Map.alter (Just . Pure.observe a . fromMaybe def) l
+instance (NFData label, NFData (Purify metric), Ord label, Pure.Observe (Purify metric)) => Observe (label, Vector label metric) where
+  observe a (label, Vector (Impure (_, def) _info (Compose tvar))) =
+    atomically . modifyTVar' tvar $ force . Map.alter (Just . Pure.observe a . fromMaybe def) label
+  {-# INLINEABLE observe #-}
