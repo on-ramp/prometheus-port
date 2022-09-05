@@ -69,6 +69,7 @@ data Estimator = Estimator
 
 instance NFData Estimator where
   rnf (Estimator c s q i) = rnf (c, s, q, i)
+  {-# INLINABLE rnf #-}
 
 
 -- | A summary exposes streaming φ-quantiles (0 ≤ φ ≤ 1) of observed events over a sliding time
@@ -84,6 +85,7 @@ data Summary = Summary
 
 instance NFData Summary where
   rnf (Summary c d qs) = rnf (c, d, qs)
+  {-# INLINABLE rnf #-}
 
 instance Name Estimator where
   name _ = "summary"
@@ -98,7 +100,7 @@ instance Extract Estimator Summary where
     let estimator@(Estimator count esum quantiles _) = compress estimator'
         quants = fmap fst quantiles
     in Summary (fromIntegral count) esum . zip quants $ map (query estimator) quants
-  {-# INLINE extract #-}
+  {-# INLINABLE extract #-}
 
 instance Export Estimator where
   export estimator =
@@ -106,11 +108,11 @@ instance Export Estimator where
     in converted quantiles <> [ DoubleSample "_sum" [] ssum, IntSample "_count" [] count ]
     where
       converted = fmap (\(k, a) -> DoubleSample "" [("quantile", BSLC.pack $ show k)] a)
-  {-# INLINE export #-}
+  {-# INLINABLE export #-}
 
 instance Observe Estimator where
   observe !value = insert value . compress
-  {-# INLINE observe #-}
+  {-# INLINABLE observe #-}
 
 insert :: Double -> Estimator -> Estimator
 insert value summaryData@(Estimator oldCount oldSum quantiles items) =

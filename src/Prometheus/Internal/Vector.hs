@@ -65,6 +65,7 @@ type instance Extra (Vector label metric) = (,) label
 -- The constraint @Extra metric ~ Identity@ limits the @metric@ type to the primitive metrics (e.g. 'Counter', 'Histogram'...).
 vector :: (Extra metric ~ Identity) => label -> Metric metric -> Metric (Vector label metric)
 vector label (Metric (Impure (Identity def) info _base)) = Metric $ Impure (label, def) info Map.empty
+{-# INLINEABLE vector #-}
 
 -- | Operate on a specific metric of a 'Vector'
 --
@@ -77,6 +78,7 @@ vector label (Metric (Impure (Identity def) info _base)) = Metric $ Impure (labe
 -- @
 withLabel :: label -> Vector label metric -> ((label, Vector label metric) -> t) -> t
 withLabel label v a = a (label, v)
+{-# INLINEABLE withLabel #-}
 
 
 type Vector1 = Vector Label1
@@ -126,10 +128,12 @@ instance Register (Vector label metric) where
   register (Metric (Impure def info _)) = do
     tvar <- newTVarIO Map.empty
     return . Vector . Impure def info $ Compose tvar
+  {-# INLINEABLE register #-}
 
 instance Pure.Extract (Purify metric) e => Extract (Vector label metric) (Map label e) where
   extract (Vector (Impure _ _ (Compose tvar))) =
     fmap Pure.extract <$> readTVarIO tvar
+  {-# INLINEABLE extract #-}
 
 instance (Zip label, Ord label, Pure.Name (Purify metric), Pure.Export (Purify metric)) => Export (Vector label metric) where
   export (Vector (Impure (tags, _) info (Compose tvar))) =
@@ -137,19 +141,24 @@ instance (Zip label, Ord label, Pure.Name (Purify metric), Pure.Export (Purify m
     where
       f :: label -> [(label, Purify metric)] -> [Pure.Sample]
       f k = foldMap $ \(label, o) -> Pure.addTags (zipper k label) $ Pure.export o
+  {-# INLINEABLE export #-}
 
 instance (NFData label, NFData (Purify metric), Ord label, Pure.Increment (Purify metric)) => Increment (label, Vector label metric) where
   plus a (label, Vector (Impure (_, def) _info (Compose tvar))) =
     atomically . modifyTVar' tvar $ force . Map.alter (Just . Pure.plus a . fromMaybe def) label
+  {-# INLINEABLE plus #-}
 
 instance (NFData label, NFData (Purify metric), Ord label, Pure.Decrement (Purify metric)) => Decrement (label, Vector label metric) where
   minus a (label, Vector (Impure (_, def) _info (Compose tvar))) =
     atomically . modifyTVar' tvar $ force . Map.alter (Just . Pure.minus a . fromMaybe def) label
+  {-# INLINEABLE minus #-}
 
 instance (NFData label, NFData (Purify metric), Ord label, Pure.Set (Purify metric)) => Set (label, Vector label metric) where
   set a (label, Vector (Impure (_, def) _info (Compose tvar))) =
     atomically . modifyTVar' tvar $ force . Map.alter (Just . Pure.set a . fromMaybe def) label
+  {-# INLINEABLE set #-}
 
 instance (NFData label, NFData (Purify metric), Ord label, Pure.Observe (Purify metric)) => Observe (label, Vector label metric) where
   observe a (label, Vector (Impure (_, def) _info (Compose tvar))) =
     atomically . modifyTVar' tvar $ force . Map.alter (Just . Pure.observe a . fromMaybe def) label
+  {-# INLINEABLE observe #-}

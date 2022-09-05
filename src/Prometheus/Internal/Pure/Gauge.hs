@@ -1,5 +1,4 @@
-{-# LANGUAGE BangPatterns
-           , DerivingStrategies
+{-# LANGUAGE DerivingStrategies
            , GeneralizedNewtypeDeriving
            , MultiParamTypeClasses
            , OverloadedStrings #-}
@@ -29,20 +28,20 @@ instance Name Gauge where
 
 instance Extract Gauge Double where
   extract = unGauge
-  {-# INLINE extract #-}
+  {-# INLINABLE extract #-}
 
 instance Export Gauge where
   export = pure . DoubleSample "" [] . unGauge
-  {-# INLINE export #-}
+  {-# INLINABLE export #-}
 
 instance Increment Gauge where
-  plus a = Gauge . force . (+) a . unGauge
-  {-# INLINE plus #-}
+  plus a = Gauge . (+) a . unGauge
+  {-# INLINABLE plus #-}
 
 instance Decrement Gauge where
-  minus a = Gauge . force . subtract a . unGauge
-  {-# INLINE minus #-}
+  minus a = Gauge . subtract a . unGauge
+  {-# INLINABLE minus #-}
 
 instance Set Gauge where
-  set !a = const (Gauge a)
-  {-# INLINE set #-}
+  set = const . Gauge
+  {-# INLINABLE set #-}

@@ -54,7 +54,7 @@ instance Construct [Bucket] Histogram where
 
 instance Extract Histogram Histogram where
   extract = id
-  {-# INLINE extract #-}
+  {-# INLINABLE extract #-}
 
 instance Export Histogram where
   export (Histogram hsum count buckets) =
@@ -77,4 +77,4 @@ instance Observe Histogram where
       case Map.lookupGE value buckets of
         Nothing         -> buckets
         Just (upper, _) -> Map.adjust (+ 1) upper buckets
-  {-# INLINE observe #-}
+  {-# INLINABLE observe #-}

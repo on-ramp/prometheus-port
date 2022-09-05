@@ -114,6 +114,7 @@ newtype Metric m = Metric { unMetric :: Impure (Extra m (Purify m)) (Rank m) (Pu
 -- | Appends 'Tags' to the given 'Metric'.
 tag :: Tags -> Metric metric -> Metric metric
 tag t' (Metric (Impure def (MkInfo n h t) metric)) = Metric $ Impure def (MkInfo n h $ t <> t') metric
+{-# INLINABLE tag #-}
 
 -- | Provides 'tag' for any type that derives 'Generic'.
 genericTag
@@ -122,6 +123,7 @@ genericTag
      )
   => Tags -> f Metric -> f Metric
 genericTag t = to . gtag t . from
+{-# INLINABLE genericTag #-}
 
 class GTag i where
   gtag :: Tags -> i a -> i a
@@ -187,6 +189,7 @@ genericRegister
      )
   => f Metric -> IO (f Identity)
 genericRegister = fmap to . gregister . from
+{-# INLINABLE genericRegister #-}
 
 class GRegister i o where
   gregister :: i a -> IO (o a)
@@ -219,6 +222,7 @@ genericExport
      )
   => f Identity -> IO [Template]
 genericExport = gexport . from
+{-# INLINABLE genericExport #-}
 
 class GExport i where
   gexport :: i a -> IO [Template]
