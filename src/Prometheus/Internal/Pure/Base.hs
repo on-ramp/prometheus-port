@@ -1,12 +1,12 @@
-{-# LANGUAGE DeriveFunctor
+{-# LANGUAGE DeriveAnyClass
+           , DeriveFunctor
+           , DeriveGeneric
            , DerivingStrategies
            , FlexibleInstances
            , FunctionalDependencies
  #-}
 
 {-# OPTIONS_HADDOCK hide #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
 
 module Prometheus.Internal.Pure.Base
   ( Tags

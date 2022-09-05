@@ -32,7 +32,7 @@ newtype HttpMetrics f =
 -- In order to use this, you would need to 'register' the metric.
 httpMetrics :: HttpMetrics Metric
 httpMetrics =
-  let buckets = take 14 . iterate (*2) $! 1 / 1024
+  let buckets = take 14 . iterate (*2) $ 1 / 1024
   in HttpMetrics
        { hmDuration = vector ("path", "method", "status") $
                         histogram (Info "http_req_duration" "HTTP request duration (in seconds)") buckets
